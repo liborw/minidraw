@@ -63,3 +63,4 @@ for p in planets:
 # Render output
 # ------------------------------------------------------------
 d.render_to_file("solar_system.svg")
+
