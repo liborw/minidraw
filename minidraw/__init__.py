@@ -1,6 +1,7 @@
 from .primitives import (
     Primitive, Line, Circle, Rectangle, Polyline, Arc, Text, Group
 )
+from .style import Style
 from .transform import rotate_point, scale_point
 from .drawing import Drawing
 
@@ -14,6 +15,7 @@ __all__ = [
     "Arc",
     "Text",
     "Group",
+    "Style",
     "rotate_point",
     "scale_point",
 ]
