@@ -128,8 +128,8 @@ class SVGRenderEngine(RenderEngine):
             parent,
             "circle",
             {
-                "cx": str(item.center[0]),
-                "cy": str(item.center[1]),
+                "cx": str(item._center[0]),
+                "cy": str(item._center[1]),
                 "r": str(item.radius),
                 "stroke": style.stroke or "black",
                 "stroke-width": str(style.stroke_width),
@@ -168,10 +168,10 @@ class SVGRenderEngine(RenderEngine):
         SubElement(parent, "polyline", attrs)
 
     def _draw_arc(self, item: Arc, parent: Element, style: Style) -> None:
-        start_x = item.center[0] + item.radius * cos(radians(item.start_angle))
-        start_y = item.center[1] + item.radius * sin(radians(item.start_angle))
-        end_x = item.center[0] + item.radius * cos(radians(item.end_angle))
-        end_y = item.center[1] + item.radius * sin(radians(item.end_angle))
+        start_x = item._center[0] + item.radius * cos(radians(item.start_angle))
+        start_y = item._center[1] + item.radius * sin(radians(item.start_angle))
+        end_x = item._center[0] + item.radius * cos(radians(item.end_angle))
+        end_y = item._center[1] + item.radius * sin(radians(item.end_angle))
         large_arc_flag = 1 if abs(item.end_angle - item.start_angle) > 180 else 0
 
         path_d = (
@@ -225,7 +225,7 @@ class SVGRenderEngine(RenderEngine):
                 xs.extend([item.start[0], item.end[0]])
                 ys.extend([item.start[1], item.end[1]])
             elif isinstance(item, Circle):
-                cx, cy, r = *item.center, item.radius
+                cx, cy, r = *item._center, item.radius
                 xs.extend([cx - r, cx + r])
                 ys.extend([cy - r, cy + r])
             elif isinstance(item, Rectangle):
@@ -238,7 +238,7 @@ class SVGRenderEngine(RenderEngine):
                     xs.append(x)
                     ys.append(y)
             elif isinstance(item, Arc):
-                cx, cy, r = *item.center, item.radius
+                cx, cy, r = *item._center, item.radius
                 xs.extend([cx - r, cx + r])
                 ys.extend([cy - r, cy + r])
             elif isinstance(item, Text):

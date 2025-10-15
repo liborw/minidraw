@@ -1,6 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
-from typing import Union, Optional, Iterable
+from typing import Union, Optional
 
 from .primitives import (
     Primitive,
@@ -62,7 +62,7 @@ class Drawing:
         *,
         style: Optional[Style] = None,
     ) -> Circle:
-        c = Circle(center=center, radius=radius, style=style or Style())
+        c = Circle(_center=center, radius=radius, style=style or Style())
         self.add(c)
         return c
 

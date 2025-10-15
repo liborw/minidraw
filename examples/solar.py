@@ -47,7 +47,7 @@ for p in planets:
     y = p["dist"] * sin(radians(p["angle"]))
 
     planet_style = Style(fill=p["color"], stroke="black")
-    d.circle(center=(x, y), radius=p["radius"], style=planet_style)
+    d.circle((x, y), p["radius"], style=planet_style)
 
     d.text(
         pos=(x, y + p["radius"] + 6),
