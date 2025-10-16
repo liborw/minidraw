@@ -1,96 +1,160 @@
 from __future__ import annotations
-import json
-from typing import Iterable
-from ..primitives import Line, Circle, Rectangle, Polyline, Arc, Text, Group, Primitive
+from typing import List
+from pathlib import Path
+from ..primitives import (
+    Primitive,
+    Group,
+    Line,
+    Circle,
+    Rectangle,
+    Polyline,
+    Arc,
+    Text,
+)
 from ..style import Style
-from .base import Backend
 
 
-class PythonBackend(Backend):
-    """Render primitives or groups into equivalent Python Drawing code."""
+class PythonBackend:
+    """Backend that generates clean, runnable Python code reproducing a drawing."""
 
-    def __init__(self, *, use_style: bool = False):
-        """
-        Parameters
-        ----------
-        use_style:
-            If False, style arguments are omitted from generated code.
-        """
-        self.use_style = use_style
-
-    def render_to_string(
+    def __init__(
         self,
-        drawable: Primitive | Group | Iterable[Primitive | Group],
-    ) -> str:
-        drawables = [drawable] if isinstance(drawable, (Primitive, Group)) else list(drawable)
+        ignore_style: bool = False,
+        standalone: bool = True,
+    ):
+        """
+        Args:
+            ignore_style: If True, omit all style arguments (geometry only).
+            standalone: If False, omit imports/header/footer — produce only drawing code.
+        """
+        self.ignore_style = ignore_style
+        self.standalone = standalone
+        self.group_counter = 0
 
-        # If styles are used, import Style in the generated code
-        imports = "from minidraw import Drawing, Style" if self.use_style else "from minidraw import Drawing"
-        code = [imports, "", "d = Drawing()", ""]
-        for d in drawables:
-            code.extend(self._emit_item(d, "d", inherited_style=Style()))
-        code.append("")
-        code.append('d.render_to_file("output.svg")')
-        return "\n".join(code)
+    # ------------------------------------------------------------------
+    # Rendering entrypoints
+    # ------------------------------------------------------------------
+    def render_to_string(self, elements: List[Primitive]) -> str:
+        lines: List[str] = []
 
-    # -----------------------------------------------------------
-    # Recursive emission
-    # -----------------------------------------------------------
-    def _emit_item(self, item: Primitive | Group, target: str, inherited_style: Style) -> list[str]:
-        style = item.style.merged(inherited_style)
+        # Header -------------------------------------------------------
+        if self.standalone:
+            lines += [
+                "from minidraw import Drawing, Group, Style, Line, Circle, Rectangle, Polyline, Arc, Text",
+                "",
+                "d = Drawing()",
+            ]
 
-        def fmt(style: Style) -> str:
-            if not self.use_style:
-                return ""
-            return f", style={self._fmt_style(style)}"
+        # Body ---------------------------------------------------------
+        for e in elements:
+            lines.extend(self._render_primitive(e, var_prefix="d"))
 
-        if isinstance(item, Line):
-            return [f"{target}.line(({item.start.x:.2f}, {item.start.y:.2f}), "
-                    f"({item.end.x:.2f}, {item.end.y:.2f}){fmt(style)})"]
+        # Footer -------------------------------------------------------
+        if self.standalone:
+            lines += [
+                "",
+                "d.render_to_file('output.svg')",
+            ]
 
-        elif isinstance(item, Circle):
-            return [f"{target}.circle(({item.center_point.x:.2f}, {item.center_point.y:.2f}), "
-                    f"{item.radius:.2f}{fmt(style)})"]
+        return "\n".join(lines)
 
-        elif isinstance(item, Rectangle):
-            w, h = item.size
-            return [f"{target}.rectangle(({item.pos.x:.2f}, {item.pos.y:.2f}), "
-                    f"({w:.2f}, {h:.2f}){fmt(style)})"]
+    def render_to_file(self, path: Path, elements: List[Primitive]) -> None:
+        path.write_text(self.render_to_string(elements), encoding="utf-8")
 
-        elif isinstance(item, Polyline):
-            pts = ", ".join(f"({p.x:.2f}, {p.y:.2f})" for p in item.points)
-            return [f"{target}.polyline([{pts}]{fmt(style)})"]
+    # ------------------------------------------------------------------
+    # Primitive rendering
+    # ------------------------------------------------------------------
+    def _render_primitive(self, p: Primitive, var_prefix: str) -> List[str]:
+        lines: List[str] = []
 
-        elif isinstance(item, Arc):
-            return [f"{target}.arc(({item.center_point.x:.2f}, {item.center_point.y:.2f}), "
-                    f"{item.radius:.2f}, {item.start_angle:.2f}, {item.end_angle:.2f}{fmt(style)})"]
-
-        elif isinstance(item, Text):
-            return [f"{target}.text(({item.pos.x:.2f}, {item.pos.y:.2f}), "
-                    f"{repr(item.content)}{fmt(style)})"]
-
-        elif isinstance(item, Group):
-            lines = []
-            for e in item.elements:
-                lines.extend(self._emit_item(e, target, inherited_style=style))
+        # --- Group ----------------------------------------------------
+        if isinstance(p, Group):
+            self.group_counter += 1
+            gname = f"g{self.group_counter}"
+            style_part = self._style_arg(p.style)
+            style_text = f"({style_part})" if style_part else "()"
+            lines.append(f"{gname} = Group{style_text}")
+            for e in p.elements:
+                lines.extend(self._render_primitive(e, var_prefix=gname))
+            lines.append(f"{var_prefix}.add({gname})")
             return lines
 
-        else:
-            return [f"# Unsupported element: {type(item).__name__}"]
+        # --- Line -----------------------------------------------------
+        if isinstance(p, Line):
+            args = f"({p.start.x}, {p.start.y}), ({p.end.x}, {p.end.y})"
+            lines.append(f"{var_prefix}.add(Line({args}{self._style_suffix(p)}))")
+            return lines
 
-    # -----------------------------------------------------------
-    # Style serialization
-    # -----------------------------------------------------------
-    def _fmt_style(self, style: Style) -> str:
-        """Return a string that reconstructs a Style object in code form."""
-        parts: list[str] = []
-        for field_name, value in style.__dict__.items():
-            if value is None:
-                continue
-            if isinstance(value, str):
-                parts.append(f"{field_name}={repr(value)}")
-            elif isinstance(value, list):
-                parts.append(f"{field_name}={value}")
-            else:
-                parts.append(f"{field_name}={value}")
-        return f"Style({', '.join(parts)})" if parts else "Style()"
+        # --- Circle ---------------------------------------------------
+        if isinstance(p, Circle):
+            args = f"({p.center_point.x}, {p.center_point.y}), {p.radius}"
+            lines.append(f"{var_prefix}.add(Circle({args}{self._style_suffix(p)}))")
+            return lines
+
+        # --- Rectangle ------------------------------------------------
+        if isinstance(p, Rectangle):
+            args = f"({p.pos.x}, {p.pos.y}), ({p.size[0]}, {p.size[1]})"
+            lines.append(f"{var_prefix}.add(Rectangle({args}{self._style_suffix(p)}))")
+            return lines
+
+        # --- Polyline -------------------------------------------------
+        if isinstance(p, Polyline):
+            pts = ", ".join(f"({pt.x}, {pt.y})" for pt in p.points)
+            lines.append(f"{var_prefix}.add(Polyline([{pts}]{self._style_suffix(p)}))")
+            return lines
+
+        # --- Arc ------------------------------------------------------
+        if isinstance(p, Arc):
+            args = f"({p.center_point.x}, {p.center_point.y}), {p.radius}, {p.start_angle}, {p.end_angle}"
+            lines.append(f"{var_prefix}.add(Arc({args}{self._style_suffix(p)}))")
+            return lines
+
+        # --- Text -----------------------------------------------------
+        if isinstance(p, Text):
+            text_value = repr(p.content)
+            args = f"({p.pos.x}, {p.pos.y}), {text_value}"
+            lines.append(f"{var_prefix}.add(Text({args}{self._style_suffix(p)}))")
+            return lines
+
+        return lines
+
+    # ------------------------------------------------------------------
+    # Style formatting
+    # ------------------------------------------------------------------
+    def _style_suffix(self, p: Primitive) -> str:
+        """Return formatted style suffix like ', style=Style(...)' or empty string."""
+        if self.ignore_style:
+            return ""
+        style_str = self._style_arg(p.style)
+        return f", style={style_str}" if style_str else ""
+
+    def _style_arg(self, style: Style) -> str:
+        """Return 'Style(...)' string if style has at least one non-None value."""
+        if self.ignore_style or style is None:
+            return ""
+
+        args = []
+        if style.stroke is not None:
+            args.append(f"stroke={style.stroke!r}")
+        if style.stroke_width is not None:
+            args.append(f"stroke_width={style.stroke_width}")
+        if style.fill is not None:
+            args.append(f"fill={style.fill!r}")
+        if style.opacity is not None:
+            args.append(f"opacity={style.opacity}")
+        if style.dash is not None:
+            args.append(f"dash={style.dash}")
+        if style.linecap is not None:
+            args.append(f"linecap={style.linecap!r}")
+        if style.linejoin is not None:
+            args.append(f"linejoin={style.linejoin!r}")
+        if style.font_size is not None:
+            args.append(f"font_size={style.font_size}")
+        if style.font_family is not None:
+            args.append(f"font_family={style.font_family!r}")
+        if style.text_anchor is not None:
+            args.append(f"text_anchor={style.text_anchor!r}")
+
+        if not args:
+            return ""
+        return f"Style({', '.join(args)})"

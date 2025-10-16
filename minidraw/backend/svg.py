@@ -12,7 +12,13 @@ from .base import Backend
 class SVGBackend(Backend):
     """Render primitives or groups into an SVG string."""
 
-    def __init__(self, *, default_style: Optional[Style] = None, pretty_print: bool = False):
+    def __init__(
+        self,
+        *,
+        default_style: Optional[Style] = None,
+        pretty_print: bool = False,
+        margin: int = 10
+    ):
         """
         Parameters
         ----------
@@ -21,6 +27,7 @@ class SVGBackend(Backend):
         """
         self.pretty_print: bool = pretty_print
         self.default_style: Style = default_style or Style()
+        self.margin: int = margin
 
     # -----------------------------------------------------------
     # Public entry point
@@ -86,8 +93,8 @@ class SVGBackend(Backend):
             "x2": str(x2),
             "y2": str(y2),
             "stroke": style.stroke or self.default_style.stroke or "black",
-            "stroke-width": str(style.stroke_width),
-            "opacity": str(style.opacity),
+            "stroke-width": str(style.stroke_width or self.default_style.stroke_width or 1.0),
+            "opacity": str(style.opacity or self.default_style.opacity or 1.0),
         }
         if style.dash:
             attrs["stroke-dasharray"] = " ".join(map(str, style.dash))
@@ -107,9 +114,9 @@ class SVGBackend(Backend):
                 "cy": str(cy),
                 "r": str(item.radius),
                 "stroke": style.stroke or self.default_style.stroke or "black",
-                "stroke-width": str(style.stroke_width),
-                "fill": style.fill or "none",
-                "opacity": str(style.opacity),
+                "fill": style.fill or self.default_style.fill or "none",
+                "stroke-width": str(style.stroke_width or self.default_style.stroke_width or 1.0),
+                "opacity": str(style.opacity or self.default_style.opacity or 1.0),
             },
         )
 
@@ -124,9 +131,9 @@ class SVGBackend(Backend):
                 "width": str(item.size[0]),
                 "height": str(item.size[1]),
                 "stroke": style.stroke or self.default_style.stroke or "black",
-                "stroke-width": str(style.stroke_width),
+                "stroke-width": str(style.stroke_width or self.default_style.stroke_width or 1.0),
                 "fill": style.fill or self.default_style.fill or "none",
-                "opacity": str(style.opacity),
+                "opacity": str(style.opacity or self.default_style.opacity or 1.0),
             },
         )
 
@@ -135,9 +142,9 @@ class SVGBackend(Backend):
         attrs = {
             "points": points_str,
             "stroke": style.stroke or self.default_style.stroke or "black",
-            "stroke-width": str(style.stroke_width),
+            "stroke-width": str(style.stroke_width or self.default_style.stroke_width or 1.0),
             "fill": style.fill or self.default_style.fill or "none",
-            "opacity": str(style.opacity),
+            "opacity": str(style.opacity or self.default_style.opacity or 1.0),
         }
         if style.dash:
             attrs["stroke-dasharray"] = " ".join(map(str, style.dash))
@@ -162,9 +169,9 @@ class SVGBackend(Backend):
             {
                 "d": path_d,
                 "stroke": style.stroke or self.default_style.stroke or "black",
-                "stroke-width": str(style.stroke_width),
+                "stroke-width": str(style.stroke_width or self.default_style.stroke_width or 1.0),
                 "fill": style.fill or self.default_style.fill or "none",
-                "opacity": str(style.opacity),
+                "opacity": str(style.opacity or self.default_style.opacity or 1.0),
             },
         )
 
@@ -180,8 +187,8 @@ class SVGBackend(Backend):
                 "font-family": style.font_family or self.default_style.font_family or "sans-serif",
                 "text-anchor": style.text_anchor or self.default_style.text_anchor or "start",
                 "fill": style.fill or self.default_style.fill or "black",
-                "stroke": "none",
-                "opacity": str(style.opacity),
+                "stroke": style.stroke or "none",
+                "opacity": str(style.opacity or self.default_style.opacity or 1.0),
             },
         )
         text_elem.text = item.content
@@ -236,5 +243,4 @@ class SVGBackend(Backend):
         if not xs or not ys:
             return None
 
-        margin = 10
-        return (min(xs) - margin, min(ys) - margin, max(xs) + margin, max(ys) + margin)
+        return (min(xs) - self.margin, min(ys) - self.margin, max(xs) + self.margin, max(ys) + self.margin)

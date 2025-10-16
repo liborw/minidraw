@@ -1,6 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass
-from typing import Self, TypeAlias, Tuple
+from typing import TypeAlias, Tuple
 from math import sin, cos, radians
 from .spatial import Spatial
 
@@ -12,100 +12,77 @@ PointLike: TypeAlias = "Point | Tuple[float, float]"
 
 @dataclass
 class Point(Spatial):
-    """A simple 2D point supporting direct affine transformations."""
+    """A simple 2D point supporting direct affine transformations.
+    All transformations mutate the point in place.
+    """
 
     x: float = 0.0
     y: float = 0.0
 
     # --------------------------------------------------------
-    # Construction
+    # Construction and conversion
     # --------------------------------------------------------
-    def __init__(self, x: float = 0.0, y: float = 0):
+    def __init__(self, x: float = 0.0, y: float = 0.0):
         self.x = x
         self.y = y
 
-    # --------------------------------------------------------
-    # Coordinate accessors
-    # --------------------------------------------------------
     def as_tuple(self) -> tuple[float, float]:
-        """Return the point as a tuple (x, y)."""
         return (self.x, self.y)
 
     # --------------------------------------------------------
-    # Spatial transformations
+    # Spatial transformations (in place)
     # --------------------------------------------------------
-    def translate(self, dx: float, dy: float, *, copy: bool = True) -> Self:
+    def translate(self, dx: float, dy: float) -> "Point":
         """Translate by (dx, dy)."""
-        obj = self._maybe_copy(copy)
-        obj.x = obj.x + dx
-        obj.y = obj.y + dy
-        return obj
+        self.x += dx
+        self.y += dy
+        return self
 
-    def rotate(self, angle_deg: float, center: PointLike | None = None, *, copy: bool = True) -> Self:
+    def rotate(self, angle_deg: float, center: PointLike | None = None) -> "Point":
         """Rotate around a given center (defaults to origin)."""
-
         if center is None:
-            return self._maybe_copy(copy)
+            cx, cy = 0.0, 0.0
+        else:
+            cx, cy = to_point(center).as_tuple()
 
-        center_point = to_point(center)
-        center_x, center_y = center_point.as_tuple()
-
-        dx = self.x - center_x
-        dy = self.y - center_y
+        dx = self.x - cx
+        dy = self.y - cy
         a = radians(angle_deg)
 
-        rotated_x = dx * cos(a) - dy * sin(a)
-        rotated_y = dx * sin(a) + dy * cos(a)
+        self.x = cx + dx * cos(a) - dy * sin(a)
+        self.y = cy + dx * sin(a) + dy * cos(a)
+        return self
 
-        obj = self._maybe_copy(copy)
-        obj.x = center_x + rotated_x
-        obj.y = center_y + rotated_y
-        return obj
-
-    def resize(self, scale_x: float, scale_y: float, center: PointLike | None = None, *, copy: bool = True) -> Self:
+    def resize(self, scale_x: float, scale_y: float, center: PointLike | None = None) -> "Point":
         """Scale relative to a given center (defaults to origin)."""
         if center is None:
-            center_x = 0.0
-            center_y = 0.0
+            cx, cy = 0.0, 0.0
         else:
-            center_point = to_point(center)
-            center_x, center_y = center_point.as_tuple()
+            cx, cy = to_point(center).as_tuple()
 
-        dx = self.x - center_x
-        dy = self.y - center_y
+        self.x = cx + (self.x - cx) * scale_x
+        self.y = cy + (self.y - cy) * scale_y
+        return self
 
-        obj = self._maybe_copy(copy)
-        obj.x = center_x + dx * scale_x
-        obj.y = center_y + dy * scale_y
-        return obj
-
-    def mirror(self, point: PointLike = (0, 0), angle: float = 0.0, *, copy: bool = True) -> Self:
+    def mirror(self, point: PointLike = (0, 0), angle: float = 0.0) -> "Point":
         """Mirror across a line passing through `point` at `angle` degrees."""
-        mirror_point = Point(point)
-        px, py = mirror_point.as_tuple()
-
+        px, py = to_point(point).as_tuple()
         a = radians(angle)
-        cos_a = cos(a)
-        sin_a = sin(a)
 
         dx = self.x - px
         dy = self.y - py
 
-        # rotate to align mirror line with x-axis
-        dx_rot = dx * cos_a + dy * sin_a
-        dy_rot = -dx * sin_a + dy * cos_a
+        # rotate so the mirror line aligns with x-axis
+        dx_rot = dx * cos(a) + dy * sin(a)
+        dy_rot = -dx * sin(a) + dy * cos(a)
 
         # reflect across x-axis (invert y)
         dy_rot = -dy_rot
 
         # rotate back
-        new_x = px + dx_rot * cos_a - dy_rot * sin_a
-        new_y = py + dx_rot * sin_a + dy_rot * cos_a
-
-        obj = self._maybe_copy(copy)
-        obj.x = new_x
-        obj.y = new_y
-        return obj
+        self.x = px + dx_rot * cos(a) - dy_rot * sin(a)
+        self.y = py + dx_rot * sin(a) + dy_rot * cos(a)
+        return self
 
     # --------------------------------------------------------
     # Utility

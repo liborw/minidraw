@@ -1,6 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
-from typing import Any, List, Self
+from typing import List, Self
 from abc import ABC, abstractmethod
 import copy
 
@@ -16,52 +16,48 @@ from .style import Style
 class Primitive(ABC):
     style: Style = field(default_factory=Style)
 
+    # ------------------------------------------------------------
+    # Core API
+    # ------------------------------------------------------------
     @abstractmethod
     def center(self) -> Point:
-        """Return the natural geometric center of the primitive."""
         ...
 
     @abstractmethod
-    def translate(self, dx: float, dy: float, *, copy: bool = True) -> Self:
+    def translate(self, dx: float, dy: float) -> Self:
         ...
 
     @abstractmethod
-    def rotate(self, angle_deg: float, center: PointLike | None = None, *, copy: bool = True) -> Self:
+    def rotate(self, angle_deg: float, center: PointLike | None = None) -> Self:
         ...
 
     @abstractmethod
-    def resize(self, scale_x: float, scale_y: float, center: PointLike | None = None, *, copy: bool = True) -> Self:
+    def resize(self, scale_x: float, scale_y: float, center: PointLike | None = None) -> Self:
         ...
 
     @abstractmethod
-    def mirror(self, point: PointLike = (0, 0), angle: float = 0.0, *, copy: bool = True) -> Self:
+    def mirror(self, point: PointLike = (0, 0), angle: float = 0.0) -> Self:
         ...
 
-    # ---------------------------------------------------------------
-    # Common helpers
-    # ---------------------------------------------------------------
-    def _maybe_copy(self, copy_: bool) -> Self:
-        return copy.deepcopy(self) if copy_ else self
+    # ------------------------------------------------------------
+    # Utilities
+    # ------------------------------------------------------------
+    def copy(self) -> Self:
+        """Return a deep copy of this primitive."""
+        return copy.deepcopy(self)
 
-    def apply_style(self, inherited: Style | None) -> Style:
-        """Merge this primitive's style with an inherited style."""
-        if inherited is None:
-            return self.style
-        return self.style.merged(inherited)
+    def set_style(self, style: Style) -> Self:
+        self.style = style
+        return self
 
-    def scale(self, factor: float, center: PointLike | None = None, *, copy: bool = True) -> Self:
-        """Uniform scaling convenience method."""
-        if center is None:
-            center = self.center()
-        return self.resize(factor, factor, center, copy=copy)
+    def scale(self, factor: float, center: PointLike | None = None) -> Self:
+        return self.resize(factor, factor, center)
 
-    def mirror_vertical(self, x: float = 0.0, *, copy: bool = True) -> Self:
-        """Mirror across a vertical line (angle = 90°)."""
-        return self.mirror(point=(x, 0), angle=90.0, copy=copy)
+    def mirror_vertical(self, x: float = 0.0) -> Self:
+        return self.mirror(point=(x, 0), angle=90.0)
 
-    def mirror_horizontal(self, y: float = 0.0, *, copy: bool = True) -> Self:
-        """Mirror across a horizontal line (angle = 0°)."""
-        return self.mirror(point=(0, y), angle=0.0, copy=copy)
+    def mirror_horizontal(self, y: float = 0.0) -> Self:
+        return self.mirror(point=(0, y), angle=0.0)
 
 
 # ----------------------------------------------------------------------
@@ -81,31 +77,27 @@ class Line(Primitive):
     def center(self) -> Point:
         return Point((self.start.x + self.end.x) / 2, (self.start.y + self.end.y) / 2)
 
-    def translate(self, dx: float, dy: float, *, copy: bool = True) -> Self:
-        obj = self._maybe_copy(copy)
-        obj.start = obj.start.translate(dx, dy)
-        obj.end = obj.end.translate(dx, dy)
-        return obj
+    def translate(self, dx: float, dy: float) -> Self:
+        self.start.translate(dx, dy)
+        self.end.translate(dx, dy)
+        return self
 
-    def rotate(self, angle_deg: float, center: PointLike | None = None, *, copy: bool = True) -> Self:
+    def rotate(self, angle_deg: float, center: PointLike | None = None) -> Self:
         c = to_point(center or self.center())
-        obj = self._maybe_copy(copy)
-        obj.start = obj.start.rotate(angle_deg, c)
-        obj.end = obj.end.rotate(angle_deg, c)
-        return obj
+        self.start.rotate(angle_deg, c)
+        self.end.rotate(angle_deg, c)
+        return self
 
-    def resize(self, scale_x: float, scale_y: float, center: PointLike | None = None, *, copy: bool = True) -> Self:
+    def resize(self, scale_x: float, scale_y: float, center: PointLike | None = None) -> Self:
         c = to_point(center or self.center())
-        obj = self._maybe_copy(copy)
-        obj.start = obj.start.resize(scale_x, scale_y, c)
-        obj.end = obj.end.resize(scale_x, scale_y, c)
-        return obj
+        self.start.resize(scale_x, scale_y, c)
+        self.end.resize(scale_x, scale_y, c)
+        return self
 
-    def mirror(self, point: PointLike = (0, 0), angle: float = 0.0, *, copy: bool = True) -> Self:
-        obj = self._maybe_copy(copy)
-        obj.start = obj.start.mirror(point, angle)
-        obj.end = obj.end.mirror(point, angle)
-        return obj
+    def mirror(self, point: PointLike = (0, 0), angle: float = 0.0) -> Self:
+        self.start.mirror(point, angle)
+        self.end.mirror(point, angle)
+        return self
 
 
 # ----------------------------------------------------------------------
@@ -125,28 +117,24 @@ class Circle(Primitive):
     def center(self) -> Point:
         return self.center_point
 
-    def translate(self, dx: float, dy: float, *, copy: bool = True) -> Self:
-        obj = self._maybe_copy(copy)
-        obj.center_point = obj.center_point.translate(dx, dy)
-        return obj
+    def translate(self, dx: float, dy: float) -> Self:
+        self.center_point.translate(dx, dy)
+        return self
 
-    def rotate(self, angle_deg: float, center: PointLike | None = None, *, copy: bool = True) -> Self:
+    def rotate(self, angle_deg: float, center: PointLike | None = None) -> Self:
         c = to_point(center or self.center_point)
-        obj = self._maybe_copy(copy)
-        obj.center_point = obj.center_point.rotate(angle_deg, c)
-        return obj
+        self.center_point.rotate(angle_deg, c)
+        return self
 
-    def resize(self, scale_x: float, scale_y: float, center: PointLike | None = None, *, copy: bool = True) -> Self:
+    def resize(self, scale_x: float, scale_y: float, center: PointLike | None = None) -> Self:
         c = to_point(center or self.center_point)
-        obj = self._maybe_copy(copy)
-        obj.center_point = obj.center_point.resize(scale_x, scale_y, c)
-        obj.radius *= (scale_x + scale_y) / 2
-        return obj
+        self.center_point.resize(scale_x, scale_y, c)
+        self.radius *= (scale_x + scale_y) / 2
+        return self
 
-    def mirror(self, point: PointLike = (0, 0), angle: float = 0.0, *, copy: bool = True) -> Self:
-        obj = self._maybe_copy(copy)
-        obj.center_point = obj.center_point.mirror(point, angle)
-        return obj
+    def mirror(self, point: PointLike = (0, 0), angle: float = 0.0) -> Self:
+        self.center_point.mirror(point, angle)
+        return self
 
 
 # ----------------------------------------------------------------------
@@ -168,28 +156,24 @@ class Rectangle(Primitive):
         x, y = self.pos.as_tuple()
         return Point(x + w / 2, y + h / 2)
 
-    def translate(self, dx: float, dy: float, *, copy: bool = True) -> Self:
-        obj = self._maybe_copy(copy)
-        obj.pos = obj.pos.translate(dx, dy)
-        return obj
+    def translate(self, dx: float, dy: float) -> Self:
+        self.pos.translate(dx, dy)
+        return self
 
-    def rotate(self, angle_deg: float, center: PointLike | None = None, *, copy: bool = True) -> Self:
+    def rotate(self, angle_deg: float, center: PointLike | None = None) -> Self:
         c = to_point(center or self.center())
-        obj = self._maybe_copy(copy)
-        obj.pos = obj.pos.rotate(angle_deg, c)
-        return obj
+        self.pos.rotate(angle_deg, c)
+        return self
 
-    def resize(self, scale_x: float, scale_y: float, center: PointLike | None = None, *, copy: bool = True) -> Self:
+    def resize(self, scale_x: float, scale_y: float, center: PointLike | None = None) -> Self:
         c = to_point(center or self.center())
-        obj = self._maybe_copy(copy)
-        obj.pos = obj.pos.resize(scale_x, scale_y, c)
-        obj.size = (obj.size[0] * scale_x, obj.size[1] * scale_y)
-        return obj
+        self.pos.resize(scale_x, scale_y, c)
+        self.size = (self.size[0] * scale_x, self.size[1] * scale_y)
+        return self
 
-    def mirror(self, point: PointLike = (0, 0), angle: float = 0.0, *, copy: bool = True) -> Self:
-        obj = self._maybe_copy(copy)
-        obj.pos = obj.pos.mirror(point, angle)
-        return obj
+    def mirror(self, point: PointLike = (0, 0), angle: float = 0.0) -> Self:
+        self.pos.mirror(point, angle)
+        return self
 
 
 # ----------------------------------------------------------------------
@@ -211,27 +195,27 @@ class Polyline(Primitive):
         ys = [p.y for p in self.points]
         return Point(sum(xs) / len(xs), sum(ys) / len(ys))
 
-    def translate(self, dx: float, dy: float, *, copy: bool = True) -> Self:
-        obj = self._maybe_copy(copy)
-        obj.points = [p.translate(dx, dy) for p in obj.points]
-        return obj
+    def translate(self, dx: float, dy: float) -> Self:
+        for p in self.points:
+            p.translate(dx, dy)
+        return self
 
-    def rotate(self, angle_deg: float, center: PointLike | None = None, *, copy: bool = True) -> Self:
+    def rotate(self, angle_deg: float, center: PointLike | None = None) -> Self:
         c = to_point(center or self.center())
-        obj = self._maybe_copy(copy)
-        obj.points = [p.rotate(angle_deg, c) for p in obj.points]
-        return obj
+        for p in self.points:
+            p.rotate(angle_deg, c)
+        return self
 
-    def resize(self, scale_x: float, scale_y: float, center: PointLike | None = None, *, copy: bool = True) -> Self:
+    def resize(self, scale_x: float, scale_y: float, center: PointLike | None = None) -> Self:
         c = to_point(center or self.center())
-        obj = self._maybe_copy(copy)
-        obj.points = [p.resize(scale_x, scale_y, c) for p in obj.points]
-        return obj
+        for p in self.points:
+            p.resize(scale_x, scale_y, c)
+        return self
 
-    def mirror(self, point: PointLike = (0, 0), angle: float = 0.0, *, copy: bool = True) -> Self:
-        obj = self._maybe_copy(copy)
-        obj.points = [p.mirror(point, angle) for p in obj.points]
-        return obj
+    def mirror(self, point: PointLike = (0, 0), angle: float = 0.0) -> Self:
+        for p in self.points:
+            p.mirror(point, angle)
+        return self
 
 
 # ----------------------------------------------------------------------
@@ -255,30 +239,26 @@ class Arc(Primitive):
     def center(self) -> Point:
         return self.center_point
 
-    def translate(self, dx: float, dy: float, *, copy: bool = True) -> Self:
-        obj = self._maybe_copy(copy)
-        obj.center_point = obj.center_point.translate(dx, dy)
-        return obj
+    def translate(self, dx: float, dy: float) -> Self:
+        self.center_point.translate(dx, dy)
+        return self
 
-    def rotate(self, angle_deg: float, center: PointLike | None = None, *, copy: bool = True) -> Self:
+    def rotate(self, angle_deg: float, center: PointLike | None = None) -> Self:
         c = to_point(center or self.center_point)
-        obj = self._maybe_copy(copy)
-        obj.center_point = obj.center_point.rotate(angle_deg, c)
-        obj.start_angle += angle_deg
-        obj.end_angle += angle_deg
-        return obj
+        self.center_point.rotate(angle_deg, c)
+        self.start_angle += angle_deg
+        self.end_angle += angle_deg
+        return self
 
-    def resize(self, scale_x: float, scale_y: float, center: PointLike | None = None, *, copy: bool = True) -> Self:
+    def resize(self, scale_x: float, scale_y: float, center: PointLike | None = None) -> Self:
         c = to_point(center or self.center_point)
-        obj = self._maybe_copy(copy)
-        obj.center_point = obj.center_point.resize(scale_x, scale_y, c)
-        obj.radius *= (scale_x + scale_y) / 2
-        return obj
+        self.center_point.resize(scale_x, scale_y, c)
+        self.radius *= (scale_x + scale_y) / 2
+        return self
 
-    def mirror(self, point: PointLike = (0, 0), angle: float = 0.0, *, copy: bool = True) -> Self:
-        obj = self._maybe_copy(copy)
-        obj.center_point = obj.center_point.mirror(point, angle)
-        return obj
+    def mirror(self, point: PointLike = (0, 0), angle: float = 0.0) -> Self:
+        self.center_point.mirror(point, angle)
+        return self
 
 
 # ----------------------------------------------------------------------
@@ -298,27 +278,23 @@ class Text(Primitive):
     def center(self) -> Point:
         return self.pos
 
-    def translate(self, dx: float, dy: float, *, copy: bool = True) -> Self:
-        obj = self._maybe_copy(copy)
-        obj.pos = obj.pos.translate(dx, dy)
-        return obj
+    def translate(self, dx: float, dy: float) -> Self:
+        self.pos.translate(dx, dy)
+        return self
 
-    def rotate(self, angle_deg: float, center: PointLike | None = None, *, copy: bool = True) -> Self:
+    def rotate(self, angle_deg: float, center: PointLike | None = None) -> Self:
         c = to_point(center or self.pos)
-        obj = self._maybe_copy(copy)
-        obj.pos = obj.pos.rotate(angle_deg, c)
-        return obj
+        self.pos.rotate(angle_deg, c)
+        return self
 
-    def resize(self, scale_x: float, scale_y: float, center: PointLike | None = None, *, copy: bool = True) -> Self:
+    def resize(self, scale_x: float, scale_y: float, center: PointLike | None = None) -> Self:
         c = to_point(center or self.pos)
-        obj = self._maybe_copy(copy)
-        obj.pos = obj.pos.resize(scale_x, scale_y, c)
-        return obj
+        self.pos.resize(scale_x, scale_y, c)
+        return self
 
-    def mirror(self, point: PointLike = (0, 0), angle: float = 0.0, *, copy: bool = True) -> Self:
-        obj = self._maybe_copy(copy)
-        obj.pos = obj.pos.mirror(point, angle)
-        return obj
+    def mirror(self, point: PointLike = (0, 0), angle: float = 0.0) -> Self:
+        self.pos.mirror(point, angle)
+        return self
 
 
 # ----------------------------------------------------------------------
@@ -327,7 +303,10 @@ class Text(Primitive):
 
 @dataclass
 class Group(Primitive):
-    elements: List[Primitive | Group] = field(default_factory=list)
+    elements: List[Primitive] = field(default_factory=list)
+
+    def add(self, *elements: Primitive) -> None:
+        self.elements.extend(elements)
 
     def center(self) -> Point:
         if not self.elements:
@@ -335,31 +314,24 @@ class Group(Primitive):
         xs, ys = zip(*(e.center() for e in self.elements))
         return Point(sum(xs) / len(xs), sum(ys) / len(ys))
 
-    def add(self, element: Primitive | Group) -> None:
-        self.elements.append(element)
+    def translate(self, dx: float, dy: float) -> Self:
+        for e in self.elements:
+            e.translate(dx, dy)
+        return self
 
-    def translate(self, dx: float, dy: float, *, copy: bool = True) -> Self:
-        obj = self._maybe_copy(copy)
-        for e in obj.elements:
-            e.translate(dx, dy, copy=False)
-        return obj
-
-    def rotate(self, angle_deg: float, center: PointLike | None = None, *, copy: bool = True) -> Self:
+    def rotate(self, angle_deg: float, center: PointLike | None = None) -> Self:
         c = to_point(center or self.center())
-        obj = self._maybe_copy(copy)
-        for e in obj.elements:
-            e.rotate(angle_deg, c, copy=False)
-        return obj
+        for e in self.elements:
+            e.rotate(angle_deg, c)
+        return self
 
-    def resize(self, scale_x: float, scale_y: float, center: PointLike | None = None, *, copy: bool = True) -> Self:
+    def resize(self, scale_x: float, scale_y: float, center: PointLike | None = None) -> Self:
         c = to_point(center or self.center())
-        obj = self._maybe_copy(copy)
-        for e in obj.elements:
-            e.resize(scale_x, scale_y, c, copy=False)
-        return obj
+        for e in self.elements:
+            e.resize(scale_x, scale_y, c)
+        return self
 
-    def mirror(self, point: PointLike = (0, 0), angle: float = 0.0, *, copy: bool = True) -> Self:
-        obj = self._maybe_copy(copy)
-        for e in obj.elements:
-            e.mirror(point=point, angle=angle, copy=False)
-        return obj
+    def mirror(self, point: PointLike = (0, 0), angle: float = 0.0) -> Self:
+        for e in self.elements:
+            e.mirror(point, angle)
+        return self

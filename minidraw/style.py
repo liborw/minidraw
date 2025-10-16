@@ -8,10 +8,10 @@ class Style:
     """Explicit, typed drawing style shared by all primitives and groups."""
 
     # Basic visual properties
-    stroke: Optional[str] = "black"
-    stroke_width: float = 1.0
-    fill: Optional[str] = "none"
-    opacity: float = 1.0
+    stroke: Optional[str] = None
+    stroke_width: Optional[float] = None
+    fill: Optional[str] = None
+    opacity: Optional[float] = None
 
     # Line and dash attributes
     dash: Optional[List[float]] = None
