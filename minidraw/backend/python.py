@@ -45,28 +45,28 @@ class PythonBackend(Backend):
             return f", style={self._fmt_style(style)}"
 
         if isinstance(item, Line):
-            return [f"{target}.line(({item.start.abs_x:.2f}, {item.start.abs_y:.2f}), "
-                    f"({item.end.abs_x:.2f}, {item.end.abs_y:.2f}){fmt(style)})"]
+            return [f"{target}.line(({item.start.x:.2f}, {item.start.y:.2f}), "
+                    f"({item.end.x:.2f}, {item.end.y:.2f}){fmt(style)})"]
 
         elif isinstance(item, Circle):
-            return [f"{target}.circle(({item.center_point.abs_x:.2f}, {item.center_point.abs_y:.2f}), "
+            return [f"{target}.circle(({item.center_point.x:.2f}, {item.center_point.y:.2f}), "
                     f"{item.radius:.2f}{fmt(style)})"]
 
         elif isinstance(item, Rectangle):
             w, h = item.size
-            return [f"{target}.rectangle(({item.pos.abs_x:.2f}, {item.pos.abs_y:.2f}), "
+            return [f"{target}.rectangle(({item.pos.x:.2f}, {item.pos.y:.2f}), "
                     f"({w:.2f}, {h:.2f}){fmt(style)})"]
 
         elif isinstance(item, Polyline):
-            pts = ", ".join(f"({p.abs_x:.2f}, {p.abs_y:.2f})" for p in item.points)
+            pts = ", ".join(f"({p.x:.2f}, {p.y:.2f})" for p in item.points)
             return [f"{target}.polyline([{pts}]{fmt(style)})"]
 
         elif isinstance(item, Arc):
-            return [f"{target}.arc(({item.center_point.abs_x:.2f}, {item.center_point.abs_y:.2f}), "
+            return [f"{target}.arc(({item.center_point.x:.2f}, {item.center_point.y:.2f}), "
                     f"{item.radius:.2f}, {item.start_angle:.2f}, {item.end_angle:.2f}{fmt(style)})"]
 
         elif isinstance(item, Text):
-            return [f"{target}.text(({item.pos.abs_x:.2f}, {item.pos.abs_y:.2f}), "
+            return [f"{target}.text(({item.pos.x:.2f}, {item.pos.y:.2f}), "
                     f"{repr(item.content)}{fmt(style)})"]
 
         elif isinstance(item, Group):

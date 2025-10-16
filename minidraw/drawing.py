@@ -54,7 +54,7 @@ class Drawing:
         *,
         style: Optional[Style] = None,
     ) -> Line:
-        line = Line(start=Point.ensure(start), end=Point.ensure(end), style=style or Style())
+        line = Line(start=start, end=end, style=style or Style())
         self.add(line)
         return line
 
@@ -65,7 +65,7 @@ class Drawing:
         *,
         style: Optional[Style] = None,
     ) -> Circle:
-        c = Circle(center=Point.ensure(center), radius=radius, style=style or Style())
+        c = Circle(center=center, radius=radius, style=style or Style())
         self.add(c)
         return c
 
@@ -76,7 +76,7 @@ class Drawing:
         *,
         style: Optional[Style] = None,
     ) -> Rectangle:
-        r = Rectangle(pos=Point.ensure(pos), size=size, style=style or Style())
+        r = Rectangle(pos=pos, size=size, style=style or Style())
         self.add(r)
         return r
 
@@ -86,7 +86,7 @@ class Drawing:
         *,
         style: Optional[Style] = None,
     ) -> Polyline:
-        p = Polyline(points=[Point.ensure(pt) for pt in points], style=style or Style())
+        p = Polyline(points=[pt for pt in points], style=style or Style())
         self.add(p)
         return p
 
@@ -100,7 +100,7 @@ class Drawing:
         style: Optional[Style] = None,
     ) -> Arc:
         a = Arc(
-            center=Point.ensure(center),
+            center=center,
             radius=radius,
             start_angle=start_angle,
             end_angle=end_angle,
@@ -116,7 +116,7 @@ class Drawing:
         *,
         style: Optional[Style] = None,
     ) -> Text:
-        t = Text(pos=Point.ensure(pos), content=content, style=style or Style())
+        t = Text(pos=pos, content=content, style=style or Style())
         self.add(t)
         return t
 

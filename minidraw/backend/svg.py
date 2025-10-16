@@ -131,7 +131,7 @@ class SVGBackend(Backend):
         )
 
     def _draw_polyline(self, item: Polyline, parent: Element, style: Style) -> None:
-        points_str = " ".join(f"{p.abs_x},{p.abs_y}" for p in item.points)
+        points_str = " ".join(f"{p.x},{p.y}" for p in item.points)
         attrs = {
             "points": points_str,
             "stroke": style.stroke or self.default_style.stroke or "black",
@@ -201,8 +201,8 @@ class SVGBackend(Backend):
 
         def collect(item: Primitive | Group):
             if isinstance(item, Line):
-                xs.extend([item.start.abs_x, item.end.abs_x])
-                ys.extend([item.start.abs_y, item.end.abs_y])
+                xs.extend([item.start.x, item.end.x])
+                ys.extend([item.start.y, item.end.y])
             elif isinstance(item, Circle):
                 cx, cy = item.center_point.as_tuple()
                 r = item.radius
@@ -215,8 +215,8 @@ class SVGBackend(Backend):
                 ys.extend([y, y + h])
             elif isinstance(item, Polyline):
                 for p in item.points:
-                    xs.append(p.abs_x)
-                    ys.append(p.abs_y)
+                    xs.append(p.x)
+                    ys.append(p.y)
             elif isinstance(item, Arc):
                 cx, cy = item.center_point.as_tuple()
                 r = item.radius

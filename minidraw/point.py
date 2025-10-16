@@ -1,7 +1,8 @@
 from __future__ import annotations
 from dataclasses import dataclass
-from typing import Optional, Self, TypeAlias, Tuple
-from warnings import deprecated
+from typing import Self, TypeAlias, Tuple
+from math import sin, cos, radians
+from .spatial import Spatial
 
 # ------------------------------------------------------------
 # Type alias
@@ -10,75 +11,115 @@ PointLike: TypeAlias = "Point | Tuple[float, float]"
 
 
 @dataclass
-class Point:
-    """A hierarchical 2D point that can be defined relative to another point."""
+class Point(Spatial):
+    """A simple 2D point supporting direct affine transformations."""
 
     x: float = 0.0
     y: float = 0.0
-    parent: Optional[Self] = None
-
-    def __init__(
-        self,
-        x: float | Self | Tuple[float, float] = 0.0,
-        y: Optional[float] = None,
-        parent: Optional[Self] = None,
-    ):
-        if isinstance(x, Point):
-            # Copy coordinates
-            self.x = x.x
-            self.y = x.y
-            self.parent = x.parent
-        elif isinstance(x, tuple) and len(x) == 2:
-            self.x, self.y = x
-            self.parent = parent
-        else:
-            # Regular (x, y)
-            self.x = float(x)
-            self.y = float(y if y is not None else 0.0)
-            self.parent = parent
 
     # --------------------------------------------------------
-    # Construction helper
+    # Construction
     # --------------------------------------------------------
-    @staticmethod
-    @deprecated("")
-    def ensure(value: PointLike) -> Point:
-        """Ensure that a value is a Point."""
-        if isinstance(value, Point):
-            return value
-        if isinstance(value, tuple) and len(value) == 2:
-            return Point(*value)
-        raise TypeError(f"Expected Point or (x, y) tuple, got {type(value).__name__}")
+    def __init__(self, x: float = 0.0, y: float = 0):
+        self.x = x
+        self.y = y
 
     # --------------------------------------------------------
     # Coordinate accessors
     # --------------------------------------------------------
-    @property
-    def abs_x(self) -> float:
-        return self.x + (self.parent.abs_x if self.parent else 0)
-
-    @property
-    def abs_y(self) -> float:
-        return self.y + (self.parent.abs_y if self.parent else 0)
-
     def as_tuple(self) -> tuple[float, float]:
-        return (self.abs_x, self.abs_y)
+        """Return the point as a tuple (x, y)."""
+        return (self.x, self.y)
 
     # --------------------------------------------------------
-    # Relative transform
+    # Spatial transformations
     # --------------------------------------------------------
-    def translated(self, dx: float, dy: float) -> Self:
-        """Return a new point defined relative to this one."""
-        return type(self)(dx, dy, parent=self)
+    def translate(self, dx: float, dy: float, *, copy: bool = True) -> Self:
+        """Translate by (dx, dy)."""
+        obj = self._maybe_copy(copy)
+        obj.x = obj.x + dx
+        obj.y = obj.y + dy
+        return obj
+
+    def rotate(self, angle_deg: float, center: PointLike | None = None, *, copy: bool = True) -> Self:
+        """Rotate around a given center (defaults to origin)."""
+
+        if center is None:
+            return self._maybe_copy(copy)
+
+        center_point = to_point(center)
+        center_x, center_y = center_point.as_tuple()
+
+        dx = self.x - center_x
+        dy = self.y - center_y
+        a = radians(angle_deg)
+
+        rotated_x = dx * cos(a) - dy * sin(a)
+        rotated_y = dx * sin(a) + dy * cos(a)
+
+        obj = self._maybe_copy(copy)
+        obj.x = center_x + rotated_x
+        obj.y = center_y + rotated_y
+        return obj
+
+    def resize(self, scale_x: float, scale_y: float, center: PointLike | None = None, *, copy: bool = True) -> Self:
+        """Scale relative to a given center (defaults to origin)."""
+        if center is None:
+            center_x = 0.0
+            center_y = 0.0
+        else:
+            center_point = to_point(center)
+            center_x, center_y = center_point.as_tuple()
+
+        dx = self.x - center_x
+        dy = self.y - center_y
+
+        obj = self._maybe_copy(copy)
+        obj.x = center_x + dx * scale_x
+        obj.y = center_y + dy * scale_y
+        return obj
+
+    def mirror(self, point: PointLike = (0, 0), angle: float = 0.0, *, copy: bool = True) -> Self:
+        """Mirror across a line passing through `point` at `angle` degrees."""
+        mirror_point = Point(point)
+        px, py = mirror_point.as_tuple()
+
+        a = radians(angle)
+        cos_a = cos(a)
+        sin_a = sin(a)
+
+        dx = self.x - px
+        dy = self.y - py
+
+        # rotate to align mirror line with x-axis
+        dx_rot = dx * cos_a + dy * sin_a
+        dy_rot = -dx * sin_a + dy * cos_a
+
+        # reflect across x-axis (invert y)
+        dy_rot = -dy_rot
+
+        # rotate back
+        new_x = px + dx_rot * cos_a - dy_rot * sin_a
+        new_y = py + dx_rot * sin_a + dy_rot * cos_a
+
+        obj = self._maybe_copy(copy)
+        obj.x = new_x
+        obj.y = new_y
+        return obj
 
     # --------------------------------------------------------
     # Utility
     # --------------------------------------------------------
     def __iter__(self):
-        yield self.abs_x
-        yield self.abs_y
+        yield self.x
+        yield self.y
 
     def __repr__(self) -> str:
-        if self.parent:
-            return f"Point({self.x:+.2f}, {self.y:+.2f}, rel→{repr(self.parent)})"
         return f"Point({self.x:.2f}, {self.y:.2f})"
+
+
+def to_point(p: Tuple[float, float] | Point) -> Point:
+    if isinstance(p, Point):
+        return p
+    else:
+        return Point(p[0], p[1])
