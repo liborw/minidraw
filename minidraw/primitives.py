@@ -75,8 +75,8 @@ class Line(Primitive):
 
     def __init__(self, start: PointLike = (0, 0), end: PointLike = (0, 0), **kwargs):
         super().__init__(**kwargs)
-        self.start = Point.ensure(start)
-        self.end = Point.ensure(end)
+        self.start = Point(start)
+        self.end = Point(end)
 
     def center(self) -> tuple[float, float]:
         return ((self.start.abs_x + self.end.abs_x) / 2, (self.start.abs_y + self.end.abs_y) / 2)
@@ -88,14 +88,14 @@ class Line(Primitive):
         return obj
 
     def rotate(self, angle_deg: float, center: PointLike | None = None, *, copy: bool = True) -> Self:
-        c = Point.ensure(center or self.center())
+        c = Point(center or self.center())
         obj = self._maybe_copy(copy)
         obj.start = obj.start.rotated(angle_deg, c)
         obj.end = obj.end.rotated(angle_deg, c)
         return obj
 
     def resize(self, scale_x: float, scale_y: float, center: PointLike | None = None, *, copy: bool = True) -> Self:
-        c = Point.ensure(center or self.center())
+        c = Point(center or self.center())
         obj = self._maybe_copy(copy)
         obj.start = obj.start.scaled(scale_x, scale_y, c)
         obj.end = obj.end.scaled(scale_x, scale_y, c)
@@ -119,7 +119,7 @@ class Circle(Primitive):
 
     def __init__(self, center: PointLike = (0, 0), radius: float = 1.0, **kwargs):
         super().__init__(**kwargs)
-        self.center_point = Point.ensure(center)
+        self.center_point = Point(center)
         self.radius = radius
 
     def center(self) -> tuple[float, float]:
@@ -131,13 +131,13 @@ class Circle(Primitive):
         return obj
 
     def rotate(self, angle_deg: float, center: PointLike | None = None, *, copy: bool = True) -> Self:
-        c = Point.ensure(center or self.center_point)
+        c = Point(center or self.center_point)
         obj = self._maybe_copy(copy)
         obj.center_point = obj.center_point.rotated(angle_deg, c)
         return obj
 
     def resize(self, scale_x: float, scale_y: float, center: PointLike | None = None, *, copy: bool = True) -> Self:
-        c = Point.ensure(center or self.center_point)
+        c = Point(center or self.center_point)
         obj = self._maybe_copy(copy)
         obj.center_point = obj.center_point.scaled(scale_x, scale_y, c)
         obj.radius *= (scale_x + scale_y) / 2
@@ -160,7 +160,7 @@ class Rectangle(Primitive):
 
     def __init__(self, pos: PointLike = (0, 0), size: tuple[float, float] = (1, 1), **kwargs):
         super().__init__(**kwargs)
-        self.pos = Point.ensure(pos)
+        self.pos = Point(pos)
         self.size = size
 
     def center(self) -> tuple[float, float]:
@@ -174,13 +174,13 @@ class Rectangle(Primitive):
         return obj
 
     def rotate(self, angle_deg: float, center: PointLike | None = None, *, copy: bool = True) -> Self:
-        c = Point.ensure(center or self.center())
+        c = Point(center or self.center())
         obj = self._maybe_copy(copy)
         obj.pos = obj.pos.rotated(angle_deg, c)
         return obj
 
     def resize(self, scale_x: float, scale_y: float, center: PointLike | None = None, *, copy: bool = True) -> Self:
-        c = Point.ensure(center or self.center())
+        c = Point(center or self.center())
         obj = self._maybe_copy(copy)
         obj.pos = obj.pos.scaled(scale_x, scale_y, c)
         obj.size = (obj.size[0] * scale_x, obj.size[1] * scale_y)
@@ -202,7 +202,7 @@ class Polyline(Primitive):
 
     def __init__(self, points: List[PointLike] | None = None, **kwargs):
         super().__init__(**kwargs)
-        self.points = [Point.ensure(p) for p in (points or [])]
+        self.points = [Point(p) for p in (points or [])]
 
     def center(self) -> tuple[float, float]:
         if not self.points:
@@ -217,13 +217,13 @@ class Polyline(Primitive):
         return obj
 
     def rotate(self, angle_deg: float, center: PointLike | None = None, *, copy: bool = True) -> Self:
-        c = Point.ensure(center or self.center())
+        c = Point(center or self.center())
         obj = self._maybe_copy(copy)
         obj.points = [p.rotated(angle_deg, c) for p in obj.points]
         return obj
 
     def resize(self, scale_x: float, scale_y: float, center: PointLike | None = None, *, copy: bool = True) -> Self:
-        c = Point.ensure(center or self.center())
+        c = Point(center or self.center())
         obj = self._maybe_copy(copy)
         obj.points = [p.scaled(scale_x, scale_y, c) for p in obj.points]
         return obj
@@ -247,7 +247,7 @@ class Arc(Primitive):
 
     def __init__(self, center: PointLike = (0, 0), radius: float = 1.0, start_angle: float = 0.0, end_angle: float = 90.0, **kwargs):
         super().__init__(**kwargs)
-        self.center_point = Point.ensure(center)
+        self.center_point = Point(center)
         self.radius = radius
         self.start_angle = start_angle
         self.end_angle = end_angle
@@ -261,7 +261,7 @@ class Arc(Primitive):
         return obj
 
     def rotate(self, angle_deg: float, center: PointLike | None = None, *, copy: bool = True) -> Self:
-        c = Point.ensure(center or self.center_point)
+        c = Point(center or self.center_point)
         obj = self._maybe_copy(copy)
         obj.center_point = obj.center_point.rotated(angle_deg, c)
         obj.start_angle += angle_deg
@@ -269,7 +269,7 @@ class Arc(Primitive):
         return obj
 
     def resize(self, scale_x: float, scale_y: float, center: PointLike | None = None, *, copy: bool = True) -> Self:
-        c = Point.ensure(center or self.center_point)
+        c = Point(center or self.center_point)
         obj = self._maybe_copy(copy)
         obj.center_point = obj.center_point.scaled(scale_x, scale_y, c)
         obj.radius *= (scale_x + scale_y) / 2
@@ -292,7 +292,7 @@ class Text(Primitive):
 
     def __init__(self, pos: PointLike = (0, 0), content: str = "", **kwargs):
         super().__init__(**kwargs)
-        self.pos = Point.ensure(pos)
+        self.pos = Point(pos)
         self.content = content
 
     def center(self) -> tuple[float, float]:
@@ -304,13 +304,13 @@ class Text(Primitive):
         return obj
 
     def rotate(self, angle_deg: float, center: PointLike | None = None, *, copy: bool = True) -> Self:
-        c = Point.ensure(center or self.pos)
+        c = Point(center or self.pos)
         obj = self._maybe_copy(copy)
         obj.pos = obj.pos.rotated(angle_deg, c)
         return obj
 
     def resize(self, scale_x: float, scale_y: float, center: PointLike | None = None, *, copy: bool = True) -> Self:
-        c = Point.ensure(center or self.pos)
+        c = Point(center or self.pos)
         obj = self._maybe_copy(copy)
         obj.pos = obj.pos.scaled(scale_x, scale_y, c)
         return obj
@@ -345,14 +345,14 @@ class Group(Primitive):
         return obj
 
     def rotate(self, angle_deg: float, center: PointLike | None = None, *, copy: bool = True) -> Self:
-        c = Point.ensure(center or self.center())
+        c = Point(center or self.center())
         obj = self._maybe_copy(copy)
         for e in obj.elements:
             e.rotate(angle_deg, c, copy=False)
         return obj
 
     def resize(self, scale_x: float, scale_y: float, center: PointLike | None = None, *, copy: bool = True) -> Self:
-        c = Point.ensure(center or self.center())
+        c = Point(center or self.center())
         obj = self._maybe_copy(copy)
         for e in obj.elements:
             e.resize(scale_x, scale_y, c, copy=False)

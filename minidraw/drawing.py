@@ -1,5 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Union, Optional
 
 from .primitives import (
@@ -12,8 +13,9 @@ from .primitives import (
     Arc,
     Text,
 )
+from .point import Point, PointLike
 from .style import Style
-from .render import RenderEngine, SVGRenderEngine
+from .backend import Backend, SVGBackend, PythonBackend
 
 
 @dataclass
@@ -22,6 +24,7 @@ class Drawing:
 
     elements: list[Primitive | Group] = field(default_factory=list)
     scale: float = 1.0
+    defautl_style: Style = field(default_factory=Style)
 
     # ------------------------------------------------------------------
     # Element Management
@@ -42,72 +45,78 @@ class Drawing:
         yield from self.elements
 
     # ------------------------------------------------------------------
-    # Fluent Creation API (with typed Style)
+    # Fluent Creation API (PointLike-compatible)
     # ------------------------------------------------------------------
     def line(
         self,
-        start: tuple[float, float],
-        end: tuple[float, float],
+        start: PointLike,
+        end: PointLike,
         *,
         style: Optional[Style] = None,
     ) -> Line:
-        line = Line(start=start, end=end, style=style or Style())
+        line = Line(start=Point.ensure(start), end=Point.ensure(end), style=style or Style())
         self.add(line)
         return line
 
     def circle(
         self,
-        center: tuple[float, float],
+        center: PointLike,
         radius: float,
         *,
         style: Optional[Style] = None,
     ) -> Circle:
-        c = Circle(_center=center, radius=radius, style=style or Style())
+        c = Circle(center=Point.ensure(center), radius=radius, style=style or Style())
         self.add(c)
         return c
 
     def rectangle(
         self,
-        pos: tuple[float, float],
+        pos: PointLike,
         size: tuple[float, float],
         *,
         style: Optional[Style] = None,
     ) -> Rectangle:
-        r = Rectangle(pos=pos, size=size, style=style or Style())
+        r = Rectangle(pos=Point.ensure(pos), size=size, style=style or Style())
         self.add(r)
         return r
 
     def polyline(
         self,
-        points: list[tuple[float, float]],
+        points: list[PointLike],
         *,
         style: Optional[Style] = None,
     ) -> Polyline:
-        p = Polyline(points=points, style=style or Style())
+        p = Polyline(points=[Point.ensure(pt) for pt in points], style=style or Style())
         self.add(p)
         return p
 
     def arc(
         self,
-        center: tuple[float, float],
+        center: PointLike,
         radius: float,
         start_angle: float,
         end_angle: float,
         *,
         style: Optional[Style] = None,
     ) -> Arc:
-        a = Arc(center=center, radius=radius, start_angle=start_angle, end_angle=end_angle, style=style or Style())
+        a = Arc(
+            center=Point.ensure(center),
+            radius=radius,
+            start_angle=start_angle,
+            end_angle=end_angle,
+            style=style or Style(),
+        )
         self.add(a)
         return a
 
     def text(
         self,
-        pos: tuple[float, float],
+        pos: PointLike,
         content: str,
         *,
         style: Optional[Style] = None,
     ) -> Text:
-        t = Text(pos=pos, content=content, style=style or Style())
+        t = Text(pos=Point.ensure(pos), content=content, style=style or Style())
         self.add(t)
         return t
 
@@ -123,25 +132,29 @@ class Drawing:
     # ------------------------------------------------------------------
     # Rendering
     # ------------------------------------------------------------------
-    def render_to_file(self, path: str, engine: Union[str, RenderEngine] = "svg", *, pretty: bool = True) -> None:
+    def render_to_file(self, path: Union[Path,str], engine: Optional[Union[str, Backend]] = None) -> None:
         """Render the drawing to an SVG file."""
-        svg_code = self.render(engine, pretty_print=pretty)
-        with open(path, "w", encoding="utf-8") as f:
-            f.write(svg_code)
+        path = Path(path)
+        backend = self._to_backend(engine or path)
+        backend.render_to_file(path, self.elements)
 
-    def render(
-        self,
-        engine: Union[str, RenderEngine] = "svg",
-        *,
-        pretty_print: bool = False,
-    ) -> str:
-        """Render all elements using the selected engine."""
-        if isinstance(engine, str):
-            if engine.lower() == "svg":
-                renderer = SVGRenderEngine()
-            else:
-                raise NotImplementedError(f"Render engine '{engine}' not supported.")
+    def render_to_string(self, engine: str | Backend = "svg") -> str:
+        backend = self._to_backend(engine)
+        return backend.render_to_string(self.elements)
+
+    def _to_backend(self, engine: str | Backend | Path) -> Backend:
+
+        if isinstance(engine, Backend):
+            return engine
+
+        if isinstance(engine, Path):
+            engine = engine.suffix
+
+        if engine in ['svg', '.svg']:
+            return  SVGBackend(pretty_print=True)
+        elif engine in ['python', 'py', '.py']:
+            return PythonBackend()
         else:
-            renderer = engine
+            raise NotImplementedError(f"Unknown backend: {engine}")
 
-        return renderer.render(self.elements, pretty_print=pretty_print)
+
