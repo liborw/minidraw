@@ -1,6 +1,7 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional, Self, TypeAlias, Tuple
+from warnings import deprecated
 
 # ------------------------------------------------------------
 # Type alias
@@ -16,10 +17,31 @@ class Point:
     y: float = 0.0
     parent: Optional[Self] = None
 
+    def __init__(
+        self,
+        x: float | Self | Tuple[float, float] = 0.0,
+        y: Optional[float] = None,
+        parent: Optional[Self] = None,
+    ):
+        if isinstance(x, Point):
+            # Copy coordinates
+            self.x = x.x
+            self.y = x.y
+            self.parent = x.parent
+        elif isinstance(x, tuple) and len(x) == 2:
+            self.x, self.y = x
+            self.parent = parent
+        else:
+            # Regular (x, y)
+            self.x = float(x)
+            self.y = float(y if y is not None else 0.0)
+            self.parent = parent
+
     # --------------------------------------------------------
     # Construction helper
     # --------------------------------------------------------
     @staticmethod
+    @deprecated("")
     def ensure(value: PointLike) -> Point:
         """Ensure that a value is a Point."""
         if isinstance(value, Point):
