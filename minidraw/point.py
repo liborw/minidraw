@@ -1,8 +1,6 @@
 from __future__ import annotations
-from dataclasses import dataclass
-from typing import TypeAlias, Tuple
-from math import sin, cos, radians
-from .spatial import Spatial
+from typing import TypeAlias, Tuple, Optional
+import math
 
 # ------------------------------------------------------------
 # Type alias
@@ -10,89 +8,123 @@ from .spatial import Spatial
 PointLike: TypeAlias = "Point | Tuple[float, float]"
 
 
-@dataclass
-class Point(Spatial):
-    """A simple 2D point supporting direct affine transformations.
-    All transformations mutate the point in place.
+class Point:
+    """
+    Represents a 2D point that can be part of a hierarchical coordinate system.
+    All transformations work in local coordinates.
     """
 
-    x: float = 0.0
-    y: float = 0.0
-
-    # --------------------------------------------------------
-    # Construction and conversion
-    # --------------------------------------------------------
-    def __init__(self, x: float = 0.0, y: float = 0.0):
+    def __init__(self, x: float, y: float, parent: Optional["Point"] = None, name: Optional[str] = None):
         self.x = x
         self.y = y
+        self.parent = parent
+        self.name = name
 
-    def as_tuple(self) -> tuple[float, float]:
-        return (self.x, self.y)
+    # ---------- Representation ----------
 
-    # --------------------------------------------------------
-    # Spatial transformations (in place)
-    # --------------------------------------------------------
-    def translate(self, dx: float, dy: float) -> "Point":
-        """Translate by (dx, dy)."""
+    def __repr__(self):
+        ax, ay = self.abs()
+        return f"Point({ax:.3f}, {ay:.3f}, name={self.name!r})"
+
+    def copy(self) -> "Point":
+        return Point(self.x, self.y, self.parent, self.name)
+
+    # ---------- Hierarchy helpers ----------
+
+    def ref(self, name: Optional[str] = None) -> "Point":
+        """Creates a new point with this point as its local origin."""
+        return Point(0, 0, parent=self, name=name)
+
+    def right_of(self, dx: float, name: Optional[str] = None) -> "Point":
+        """Creates a point dx units to the right (local)."""
+        return Point(dx, 0, parent=self, name=name)
+
+    def left_of(self, dx: float, name: Optional[str] = None) -> "Point":
+        """Creates a point dx units to the left (local)."""
+        return Point(-dx, 0, parent=self, name=name)
+
+    def above(self, dy: float, name: Optional[str] = None) -> "Point":
+        """Creates a point dy units above (local)."""
+        return Point(0, dy, parent=self, name=name)
+
+    def below(self, dy: float, name: Optional[str] = None) -> "Point":
+        """Creates a point dy units below (local)."""
+        return Point(0, -dy, parent=self, name=name)
+
+    def detach(self) -> "Point":
+        """
+        Breaks the parent link and converts to absolute coordinates.
+        """
+        ax, ay = self.abs()
+        self.x, self.y = ax, ay
+        self.parent = None
+        return self
+
+    # ---------- Coordinates ----------
+
+    def abs(self) -> Tuple[float, float]:
+        """Returns absolute coordinates recursively."""
+        if self.parent is None:
+            return self.x, self.y
+        px, py = self.parent.abs()
+        return px + self.x, py + self.y
+
+    # ---------- Local transformations ----------
+
+    def translate(self, dx: float, dy: float):
+        """Translates this point locally by (dx, dy)."""
         self.x += dx
         self.y += dy
         return self
 
-    def rotate(self, angle_deg: float, center: PointLike | None = None) -> "Point":
-        """Rotate around a given center (defaults to origin)."""
-        if center is None:
-            cx, cy = 0.0, 0.0
-        else:
-            cx, cy = to_point(center).as_tuple()
+    def rotate(self, angle_deg: float, center: Tuple[float, float] = (0.0, 0.0)):
+        """Rotates locally around a given center."""
+        cx, cy = center
+        angle = math.radians(angle_deg)
+        cos_a, sin_a = math.cos(angle), math.sin(angle)
 
-        dx = self.x - cx
-        dy = self.y - cy
-        a = radians(angle_deg)
-
-        self.x = cx + dx * cos(a) - dy * sin(a)
-        self.y = cy + dx * sin(a) + dy * cos(a)
+        dx, dy = self.x - cx, self.y - cy
+        self.x = cx + dx * cos_a - dy * sin_a
+        self.y = cy + dx * sin_a + dy * cos_a
         return self
 
-    def resize(self, scale_x: float, scale_y: float, center: PointLike | None = None) -> "Point":
-        """Scale relative to a given center (defaults to origin)."""
-        if center is None:
-            cx, cy = 0.0, 0.0
-        else:
-            cx, cy = to_point(center).as_tuple()
-
-        self.x = cx + (self.x - cx) * scale_x
-        self.y = cy + (self.y - cy) * scale_y
+    def scale(self, sx: float, sy: Optional[float] = None, center: Tuple[float, float] = (0.0, 0.0)):
+        """Scales locally around a given center."""
+        if sy is None:
+            sy = sx
+        cx, cy = center
+        self.x = sx * (self.x - cx) + cx
+        self.y = sy * (self.y - cy) + cy
         return self
 
-    def mirror(self, point: PointLike = (0, 0), angle: float = 0.0) -> "Point":
-        """Mirror across a line passing through `point` at `angle` degrees."""
-        px, py = to_point(point).as_tuple()
-        a = radians(angle)
+    def mirror(self, axis_p1: Tuple[float, float], axis_p2: Tuple[float, float]):
+        """Mirrors locally around a line defined by two points."""
+        x1, y1 = axis_p1
+        x2, y2 = axis_p2
+        dx, dy = x2 - x1, y2 - y1
+        if dx == dy == 0:
+            raise ValueError("Mirror axis points must be distinct")
 
-        dx = self.x - px
-        dy = self.y - py
+        length2 = dx * dx + dy * dy
+        ux, uy = dx / math.sqrt(length2), dy / math.sqrt(length2)
 
-        # rotate so the mirror line aligns with x-axis
-        dx_rot = dx * cos(a) + dy * sin(a)
-        dy_rot = -dx * sin(a) + dy * cos(a)
+        vx, vy = self.x - x1, self.y - y1
+        proj = vx * ux + vy * uy
 
-        # reflect across x-axis (invert y)
-        dy_rot = -dy_rot
-
-        # rotate back
-        self.x = px + dx_rot * cos(a) - dy_rot * sin(a)
-        self.y = py + dx_rot * sin(a) + dy_rot * cos(a)
+        cx, cy = x1 + proj * ux, y1 + proj * uy
+        self.x = 2 * cx - self.x
+        self.y = 2 * cy - self.y
         return self
 
-    # --------------------------------------------------------
-    # Utility
-    # --------------------------------------------------------
-    def __iter__(self):
-        yield self.x
-        yield self.y
+    def flip_lr(self):
+        """Flips left-right (mirror around vertical axis)."""
+        self.x = -self.x
+        return self
 
-    def __repr__(self) -> str:
-        return f"Point({self.x:.2f}, {self.y:.2f})"
+    def flip_ud(self):
+        """Flips up-down (mirror around horizontal axis)."""
+        self.y = -self.y
+        return self
 
 
 def to_point(p: Tuple[float, float] | Point) -> Point:

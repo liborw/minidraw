@@ -1,6 +1,8 @@
 from __future__ import annotations
 from typing import List
 from pathlib import Path
+
+from minidraw.backend.base import Backend
 from ..primitives import (
     Primitive,
     Group,
@@ -14,7 +16,7 @@ from ..primitives import (
 from ..style import Style
 
 
-class PythonBackend:
+class PythonBackend(Backend):
     """Backend that generates clean, runnable Python code reproducing a drawing."""
 
     def __init__(

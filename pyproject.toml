@@ -24,17 +24,10 @@ classifiers = [
   "Topic :: Software Development :: Libraries",
 ]
 
-dependencies = [
-  # keep it minimal at first
-  "typing-extensions>=4.0",
-]
 
 [project.optional-dependencies]
 dev = [
-  "pytest>=7.0",
-  "black>=24.0",
-  "ruff>=0.6",
-  "mypy>=1.10",
+  "pytest>=8.4",
 ]
 
 [project.urls]

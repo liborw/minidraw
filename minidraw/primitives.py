@@ -1,6 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
-from typing import List, Self
+from typing import List, Optional, Self, Sequence
 from abc import ABC, abstractmethod
 import copy
 
@@ -145,11 +145,19 @@ class Circle(Primitive):
 class Rectangle(Primitive):
     pos: Point
     size: tuple[float, float] = (1, 1)
+    radius: Optional[float] = None
 
-    def __init__(self, pos: PointLike = (0, 0), size: tuple[float, float] = (1, 1), **kwargs):
+    def __init__(
+        self,
+        pos: PointLike = (0, 0),
+        size: tuple[float, float] = (1, 1),
+        radius: Optional[float] = None,
+        **kwargs
+    ):
         super().__init__(**kwargs)
         self.pos = to_point(pos)
         self.size = size
+        self.radius = radius
 
     def center(self) -> Point:
         w, h = self.size
@@ -184,7 +192,7 @@ class Rectangle(Primitive):
 class Polyline(Primitive):
     points: List[Point] = field(default_factory=list)
 
-    def __init__(self, points: List[PointLike] | None = None, **kwargs):
+    def __init__(self, points: Sequence[PointLike] | None = None, **kwargs):
         super().__init__(**kwargs)
         self.points = [to_point(p) for p in (points or [])]
 

@@ -22,6 +22,7 @@ class Style:
     font_size: Optional[float] = None
     font_family: Optional[str] = None
     text_anchor: Optional[str] = None
+    text_baseline: Optional[str] = None
 
     def merged(self, parent: Optional["Style"] = None) -> "Style":
         """

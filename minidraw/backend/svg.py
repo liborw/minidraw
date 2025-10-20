@@ -128,6 +128,7 @@ class SVGBackend(Backend):
             {
                 "x": str(x),
                 "y": str(y),
+                **({"rx": str(item.radius)} if item.radius is not None else {}),
                 "width": str(item.size[0]),
                 "height": str(item.size[1]),
                 "stroke": style.stroke or self.default_style.stroke or "black",
@@ -186,6 +187,7 @@ class SVGBackend(Backend):
                 "font-size": str(style.font_size or self.default_style.font_size or 10),
                 "font-family": style.font_family or self.default_style.font_family or "sans-serif",
                 "text-anchor": style.text_anchor or self.default_style.text_anchor or "start",
+                **({"dominant-baseline": str(style.text_baseline)} if style.text_baseline is not None else {}),
                 "fill": style.fill or self.default_style.fill or "black",
                 "stroke": style.stroke or "none",
                 "opacity": str(style.opacity or self.default_style.opacity or 1.0),
