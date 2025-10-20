@@ -2,7 +2,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Iterable
-from ..primitives import Primitive, Group
+from ..primitives import Primitive
 
 
 class Backend(ABC):
@@ -11,7 +11,7 @@ class Backend(ABC):
     @abstractmethod
     def render_to_string(
         self,
-        drawable: Primitive | Group | Iterable[Primitive | Group],
+        drawable: Primitive | Iterable[Primitive],
     ) -> str:
         """Render primitives or groups and return backend-specific output as a string."""
         raise NotImplementedError(
@@ -21,7 +21,7 @@ class Backend(ABC):
     def render_to_file(
         self,
         path: Path ,
-        drawable: Primitive | Group | Iterable[Primitive | Group],
+        drawable: Primitive | Iterable[Primitive],
     ) -> None:
         """Render primitives or groups to a file.
 

@@ -10,21 +10,9 @@ from .base import Backend
 
 
 class SVGBackend(Backend):
-    """Render primitives or groups into an SVG string."""
+    """Render primitives or groups into an SVG string using absolute coordinates."""
 
-    def __init__(
-        self,
-        *,
-        default_style: Optional[Style] = None,
-        pretty_print: bool = False,
-        margin: int = 10
-    ):
-        """
-        Parameters
-        ----------
-        pretty_print:
-            Whether to pretty print the XML output with indentation.
-        """
+    def __init__(self, *, default_style: Optional[Style] = None, pretty_print: bool = False, margin: int = 10):
         self.pretty_print: bool = pretty_print
         self.default_style: Style = default_style or Style()
         self.margin: int = margin
@@ -32,11 +20,8 @@ class SVGBackend(Backend):
     # -----------------------------------------------------------
     # Public entry point
     # -----------------------------------------------------------
-    def render_to_string(
-        self,
-        drawable: Primitive | Group | Iterable[Primitive | Group],
-    ) -> str:
-        drawables = [drawable] if isinstance(drawable, (Primitive, Group)) else list(drawable)
+    def render_to_string(self, drawable: Primitive | Iterable[Primitive]) -> str:
+        drawables = [drawable] if isinstance(drawable, (Primitive)) else list(drawable)
 
         bounds = self._compute_bounds(drawables)
         if bounds:
@@ -64,7 +49,7 @@ class SVGBackend(Backend):
         return svg_bytes.decode("utf-8")
 
     # -----------------------------------------------------------
-    # Draw dispatch and primitives
+    # Draw dispatch
     # -----------------------------------------------------------
     def _draw_item(self, item: Primitive | Group, parent: Element, inherited_style: Style) -> None:
         style = item.style.merged(inherited_style)
@@ -84,9 +69,12 @@ class SVGBackend(Backend):
         elif isinstance(item, Group):
             self._draw_group(item, parent, style)
 
+    # -----------------------------------------------------------
+    # Primitive drawing helpers
+    # -----------------------------------------------------------
     def _draw_line(self, item: Line, parent: Element, style: Style) -> None:
-        x1, y1 = item.start.as_tuple()
-        x2, y2 = item.end.as_tuple()
+        x1, y1 = item.start.abs()
+        x2, y2 = item.end.abs()
         attrs = {
             "x1": str(x1),
             "y1": str(y1),
@@ -105,7 +93,7 @@ class SVGBackend(Backend):
         SubElement(parent, "line", attrs)
 
     def _draw_circle(self, item: Circle, parent: Element, style: Style) -> None:
-        cx, cy = item.center_point.as_tuple()
+        cx, cy = item.center_point.abs()
         SubElement(
             parent,
             "circle",
@@ -121,7 +109,7 @@ class SVGBackend(Backend):
         )
 
     def _draw_rectangle(self, item: Rectangle, parent: Element, style: Style) -> None:
-        x, y = item.pos.as_tuple()
+        x, y = item.pos.abs()
         SubElement(
             parent,
             "rect",
@@ -139,7 +127,7 @@ class SVGBackend(Backend):
         )
 
     def _draw_polyline(self, item: Polyline, parent: Element, style: Style) -> None:
-        points_str = " ".join(f"{p.x},{p.y}" for p in item.points)
+        points_str = " ".join(f"{x},{y}" for x, y in (p.abs() for p in item.points))
         attrs = {
             "points": points_str,
             "stroke": style.stroke or self.default_style.stroke or "black",
@@ -152,7 +140,7 @@ class SVGBackend(Backend):
         SubElement(parent, "polyline", attrs)
 
     def _draw_arc(self, item: Arc, parent: Element, style: Style) -> None:
-        cx, cy = item.center_point.as_tuple()
+        cx, cy = item.center_point.abs()
         start_x = cx + item.radius * cos(radians(item.start_angle))
         start_y = cy + item.radius * sin(radians(item.start_angle))
         end_x = cx + item.radius * cos(radians(item.end_angle))
@@ -177,7 +165,7 @@ class SVGBackend(Backend):
         )
 
     def _draw_text(self, item: Text, parent: Element, style: Style) -> None:
-        x, y = item.pos.as_tuple()
+        x, y = item.pos.abs()
         text_elem = SubElement(
             parent,
             "text",
@@ -201,38 +189,36 @@ class SVGBackend(Backend):
             self._draw_item(e, group_elem, inherited_style=item.style.merged(inherited_style))
 
     # -----------------------------------------------------------
-    # Bounding box computation
+    # Bounding box
     # -----------------------------------------------------------
-    def _compute_bounds(
-        self, elements: Iterable[Primitive | Group]
-    ) -> Union[tuple[float, float, float, float], None]:
+    def _compute_bounds(self, elements: Iterable[Primitive | Group]) -> Union[tuple[float, float, float, float], None]:
         xs, ys = [], []
 
         def collect(item: Primitive | Group):
             if isinstance(item, Line):
-                xs.extend([item.start.x, item.end.x])
-                ys.extend([item.start.y, item.end.y])
+                xs.extend([item.start.abs()[0], item.end.abs()[0]])
+                ys.extend([item.start.abs()[1], item.end.abs()[1]])
             elif isinstance(item, Circle):
-                cx, cy = item.center_point.as_tuple()
+                cx, cy = item.center_point.abs()
                 r = item.radius
                 xs.extend([cx - r, cx + r])
                 ys.extend([cy - r, cy + r])
             elif isinstance(item, Rectangle):
-                x, y = item.pos.as_tuple()
+                x, y = item.pos.abs()
                 w, h = item.size
                 xs.extend([x, x + w])
                 ys.extend([y, y + h])
             elif isinstance(item, Polyline):
-                for p in item.points:
-                    xs.append(p.x)
-                    ys.append(p.y)
+                for px, py in (p.abs() for p in item.points):
+                    xs.append(px)
+                    ys.append(py)
             elif isinstance(item, Arc):
-                cx, cy = item.center_point.as_tuple()
+                cx, cy = item.center_point.abs()
                 r = item.radius
                 xs.extend([cx - r, cx + r])
                 ys.extend([cy - r, cy + r])
             elif isinstance(item, Text):
-                x, y = item.pos.as_tuple()
+                x, y = item.pos.abs()
                 xs.append(x)
                 ys.append(y)
             elif isinstance(item, Group):
