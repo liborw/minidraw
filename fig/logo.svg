@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="120" viewBox="-10 -10 100 120">
+  <rect x="0" y="0" width="80" height="80" stroke="#333333" stroke-width="2" fill="none" opacity="1.0"/>
+  <g>
+    <circle cx="40.0" cy="40.0" r="36" stroke="#ff6f00" fill="none" stroke-width="2" opacity="1.0"/>
+    <line x1="0.6076898795116819" y1="46.94592710667721" x2="79.39231012048832" y2="33.05407289332279" stroke="#cccccc" stroke-width="1" opacity="1.0"/>
+    <line x1="33.05407289332279" y1="0.6076898795116819" x2="46.94592710667721" y2="79.39231012048832" stroke="#cccccc" stroke-width="1" opacity="1.0"/>
+    <line x1="23.776808493094446" y1="63.16911861358277" x2="31.602997681600353" y2="21.172085828090495" stroke="#ff6f00" stroke-width="3" opacity="1.0"/>
+    <line x1="31.602997681600353" y1="21.172085828090495" x2="41.45107521172243" y2="19.435604051421187" stroke="#ff6f00" stroke-width="3" opacity="1.0"/>
+    <line x1="41.45107521172243" y1="19.435604051421187" x2="63.16911861358277" y2="56.22319150690555" stroke="#ff6f00" stroke-width="3" opacity="1.0"/>
+  </g>
+  <text x="40" y="100" font-size="20" font-family="monospace" text-anchor="middle" fill="#333333" stroke="#333333" opacity="1.0">minidraw</text>
+</svg>
