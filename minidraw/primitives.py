@@ -1,68 +1,46 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import List, Optional, Self, Sequence
-from abc import ABC, abstractmethod
 import copy
+from abc import abstractmethod
 
 from .point import Point, PointLike, to_point
 from .style import Style
+from .spatial import Spatial
 
 
-# ----------------------------------------------------------------------
+# ======================================================================
 # Abstract Base Primitive
-# ----------------------------------------------------------------------
+# ======================================================================
 
 @dataclass(kw_only=True)
-class Primitive(ABC):
+class Primitive(Spatial):
+    """Base class for all drawable primitives implementing Spatial transformations."""
     style: Style = field(default_factory=Style)
 
     # ------------------------------------------------------------
-    # Core API
+    # Abstract geometric interface
     # ------------------------------------------------------------
     @abstractmethod
     def center(self) -> Point:
-        ...
-
-    @abstractmethod
-    def translate(self, dx: float, dy: float) -> Self:
-        ...
-
-    @abstractmethod
-    def rotate(self, angle_deg: float, center: PointLike | None = None) -> Self:
-        ...
-
-    @abstractmethod
-    def resize(self, scale_x: float, scale_y: float, center: PointLike | None = None) -> Self:
-        ...
-
-    @abstractmethod
-    def mirror(self, point: PointLike = (0, 0), angle: float = 0.0) -> Self:
+        """Return the geometric center of the primitive in local coordinates."""
         ...
 
     # ------------------------------------------------------------
-    # Utilities
+    # Common utilities
     # ------------------------------------------------------------
     def copy(self) -> Self:
         """Return a deep copy of this primitive."""
         return copy.deepcopy(self)
 
     def set_style(self, style: Style) -> Self:
+        """Assign a new style and return self."""
         self.style = style
         return self
 
-    def scale(self, factor: float, center: PointLike | None = None) -> Self:
-        return self.resize(factor, factor, center)
-
-    def mirror_vertical(self, x: float = 0.0) -> Self:
-        return self.mirror(point=(x, 0), angle=90.0)
-
-    def mirror_horizontal(self, y: float = 0.0) -> Self:
-        return self.mirror(point=(0, y), angle=0.0)
-
-
-# ----------------------------------------------------------------------
+# ======================================================================
 # Line
-# ----------------------------------------------------------------------
+# ======================================================================
 
 @dataclass
 class Line(Primitive):
@@ -83,26 +61,26 @@ class Line(Primitive):
         return self
 
     def rotate(self, angle_deg: float, center: PointLike | None = None) -> Self:
-        c = to_point(center or self.center())
+        c = center or self.center()
         self.start.rotate(angle_deg, c)
         self.end.rotate(angle_deg, c)
         return self
 
-    def resize(self, scale_x: float, scale_y: float, center: PointLike | None = None) -> Self:
-        c = to_point(center or self.center())
-        self.start.resize(scale_x, scale_y, c)
-        self.end.resize(scale_x, scale_y, c)
+    def scale(self, sx: float, sy: float | None = None, center: PointLike | None = None) -> Self:
+        c = center or self.center()
+        self.start.scale(sx, sy, c)
+        self.end.scale(sx, sy, c)
         return self
 
-    def mirror(self, point: PointLike = (0, 0), angle: float = 0.0) -> Self:
-        self.start.mirror(point, angle)
-        self.end.mirror(point, angle)
+    def mirror(self, axis_p1: PointLike, axis_p2: PointLike) -> Self:
+        self.start.mirror(axis_p1, axis_p2)
+        self.end.mirror(axis_p1, axis_p2)
         return self
 
 
-# ----------------------------------------------------------------------
+# ======================================================================
 # Circle
-# ----------------------------------------------------------------------
+# ======================================================================
 
 @dataclass
 class Circle(Primitive):
@@ -122,38 +100,33 @@ class Circle(Primitive):
         return self
 
     def rotate(self, angle_deg: float, center: PointLike | None = None) -> Self:
-        c = to_point(center or self.center_point)
+        c = center or self.center_point
         self.center_point.rotate(angle_deg, c)
         return self
 
-    def resize(self, scale_x: float, scale_y: float, center: PointLike | None = None) -> Self:
-        c = to_point(center or self.center_point)
-        self.center_point.resize(scale_x, scale_y, c)
-        self.radius *= (scale_x + scale_y) / 2
+    def scale(self, sx: float, sy: float | None = None, center: PointLike | None = None) -> Self:
+        c = center or self.center_point
+        self.center_point.scale(sx, sy, c)
+        factor = (sx + (sy or sx)) / 2
+        self.radius *= factor
         return self
 
-    def mirror(self, point: PointLike = (0, 0), angle: float = 0.0) -> Self:
-        self.center_point.mirror(point, angle)
+    def mirror(self, axis_p1: PointLike, axis_p2: PointLike) -> Self:
+        self.center_point.mirror(axis_p1, axis_p2)
         return self
 
 
-# ----------------------------------------------------------------------
+# ======================================================================
 # Rectangle
-# ----------------------------------------------------------------------
+# ======================================================================
 
 @dataclass
 class Rectangle(Primitive):
     pos: Point
-    size: tuple[float, float] = (1, 1)
+    size: PointLike = (1, 1)
     radius: Optional[float] = None
 
-    def __init__(
-        self,
-        pos: PointLike = (0, 0),
-        size: tuple[float, float] = (1, 1),
-        radius: Optional[float] = None,
-        **kwargs
-    ):
+    def __init__(self, pos: PointLike = (0, 0), size: PointLike = None, **kwargs):
         super().__init__(**kwargs)
         self.pos = to_point(pos)
         self.size = size
@@ -161,46 +134,46 @@ class Rectangle(Primitive):
 
     def center(self) -> Point:
         w, h = self.size
-        x, y = self.pos.as_tuple()
-        return Point(x + w / 2, y + h / 2)
+        return Point(self.pos.x + w / 2, self.pos.y + h / 2)
 
     def translate(self, dx: float, dy: float) -> Self:
         self.pos.translate(dx, dy)
         return self
 
     def rotate(self, angle_deg: float, center: PointLike | None = None) -> Self:
-        c = to_point(center or self.center())
+        c = center or self.center()
         self.pos.rotate(angle_deg, c)
         return self
 
-    def resize(self, scale_x: float, scale_y: float, center: PointLike | None = None) -> Self:
-        c = to_point(center or self.center())
-        self.pos.resize(scale_x, scale_y, c)
-        self.size = (self.size[0] * scale_x, self.size[1] * scale_y)
+    def scale(self, sx: float, sy: float | None = None, center: PointLike | None = None) -> Self:
+        c = center or self.center()
+        self.pos.scale(sx, sy, c)
+        self.size = (self.size[0] * sx, self.size[1] * (sy or sx))
         return self
 
-    def mirror(self, point: PointLike = (0, 0), angle: float = 0.0) -> Self:
-        self.pos.mirror(point, angle)
+    def mirror(self, axis_p1: PointLike, axis_p2: PointLike) -> Self:
+        self.pos.mirror(axis_p1, axis_p2)
         return self
 
 
-# ----------------------------------------------------------------------
+# ======================================================================
 # Polyline
-# ----------------------------------------------------------------------
+# ======================================================================
 
 @dataclass
 class Polyline(Primitive):
     points: List[Point] = field(default_factory=list)
+    closed: bool = False
 
-    def __init__(self, points: Sequence[PointLike] | None = None, **kwargs):
+    def __init__(self, points: Sequence[PointLike] | None = None, closed: bool = False, **kwargs):
         super().__init__(**kwargs)
         self.points = [to_point(p) for p in (points or [])]
+        self.closed = closed
 
     def center(self) -> Point:
         if not self.points:
             return Point(0, 0)
-        xs = [p.x for p in self.points]
-        ys = [p.y for p in self.points]
+        xs, ys = zip(*(p for p in self.points))
         return Point(sum(xs) / len(xs), sum(ys) / len(ys))
 
     def translate(self, dx: float, dy: float) -> Self:
@@ -209,26 +182,26 @@ class Polyline(Primitive):
         return self
 
     def rotate(self, angle_deg: float, center: PointLike | None = None) -> Self:
-        c = to_point(center or self.center())
+        c = center or self.center()
         for p in self.points:
             p.rotate(angle_deg, c)
         return self
 
-    def resize(self, scale_x: float, scale_y: float, center: PointLike | None = None) -> Self:
-        c = to_point(center or self.center())
+    def scale(self, sx: float, sy: float | None = None, center: PointLike | None = None) -> Self:
+        c = center or self.center()
         for p in self.points:
-            p.resize(scale_x, scale_y, c)
+            p.scale(sx, sy, c)
         return self
 
-    def mirror(self, point: PointLike = (0, 0), angle: float = 0.0) -> Self:
+    def mirror(self, axis_p1: PointLike, axis_p2: PointLike) -> Self:
         for p in self.points:
-            p.mirror(point, angle)
+            p.mirror(axis_p1, axis_p2)
         return self
 
 
-# ----------------------------------------------------------------------
+# ======================================================================
 # Arc
-# ----------------------------------------------------------------------
+# ======================================================================
 
 @dataclass
 class Arc(Primitive):
@@ -252,26 +225,27 @@ class Arc(Primitive):
         return self
 
     def rotate(self, angle_deg: float, center: PointLike | None = None) -> Self:
-        c = to_point(center or self.center_point)
+        c = center or self.center_point
         self.center_point.rotate(angle_deg, c)
         self.start_angle += angle_deg
         self.end_angle += angle_deg
         return self
 
-    def resize(self, scale_x: float, scale_y: float, center: PointLike | None = None) -> Self:
-        c = to_point(center or self.center_point)
-        self.center_point.resize(scale_x, scale_y, c)
-        self.radius *= (scale_x + scale_y) / 2
+    def scale(self, sx: float, sy: float | None = None, center: PointLike | None = None) -> Self:
+        c = center or self.center_point
+        self.center_point.scale(sx, sy, c)
+        factor = (sx + (sy or sx)) / 2
+        self.radius *= factor
         return self
 
-    def mirror(self, point: PointLike = (0, 0), angle: float = 0.0) -> Self:
-        self.center_point.mirror(point, angle)
+    def mirror(self, axis_p1: PointLike, axis_p2: PointLike) -> Self:
+        self.center_point.mirror(axis_p1, axis_p2)
         return self
 
 
-# ----------------------------------------------------------------------
+# ======================================================================
 # Text
-# ----------------------------------------------------------------------
+# ======================================================================
 
 @dataclass
 class Text(Primitive):
@@ -291,23 +265,23 @@ class Text(Primitive):
         return self
 
     def rotate(self, angle_deg: float, center: PointLike | None = None) -> Self:
-        c = to_point(center or self.pos)
+        c = center or self.pos
         self.pos.rotate(angle_deg, c)
         return self
 
-    def resize(self, scale_x: float, scale_y: float, center: PointLike | None = None) -> Self:
-        c = to_point(center or self.pos)
-        self.pos.resize(scale_x, scale_y, c)
+    def scale(self, sx: float, sy: float | None = None, center: PointLike | None = None) -> Self:
+        c = center or self.pos
+        self.pos.scale(sx, sy, c)
         return self
 
-    def mirror(self, point: PointLike = (0, 0), angle: float = 0.0) -> Self:
-        self.pos.mirror(point, angle)
+    def mirror(self, axis_p1: PointLike, axis_p2: PointLike) -> Self:
+        self.pos.mirror(axis_p1, axis_p2)
         return self
 
 
-# ----------------------------------------------------------------------
+# ======================================================================
 # Group
-# ----------------------------------------------------------------------
+# ======================================================================
 
 @dataclass
 class Group(Primitive):
@@ -328,18 +302,18 @@ class Group(Primitive):
         return self
 
     def rotate(self, angle_deg: float, center: PointLike | None = None) -> Self:
-        c = to_point(center or self.center())
+        c = center or self.center()
         for e in self.elements:
             e.rotate(angle_deg, c)
         return self
 
-    def resize(self, scale_x: float, scale_y: float, center: PointLike | None = None) -> Self:
-        c = to_point(center or self.center())
+    def scale(self, sx: float, sy: float | None = None, center: PointLike | None = None) -> Self:
+        c = center or self.center()
         for e in self.elements:
-            e.resize(scale_x, scale_y, c)
+            e.scale(sx, sy, c)
         return self
 
-    def mirror(self, point: PointLike = (0, 0), angle: float = 0.0) -> Self:
+    def mirror(self, axis_p1: PointLike, axis_p2: PointLike) -> Self:
         for e in self.elements:
-            e.mirror(point, angle)
+            e.mirror(axis_p1, axis_p2)
         return self

@@ -1,46 +1,48 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
+from typing import Self, Tuple
+
+from minidraw.point import PointLike
 
 
 class Spatial(ABC):
-    """Common interface for all 2D geometric objects that can undergo spatial transforms.
-    All transformations mutate in place.
+    """
+    Common interface for all 2D geometric objects that can undergo spatial transformations.
+    All transformations mutate the object in place.
     """
 
     # --------------------------------------------------------
     # Abstract transformation API
     # --------------------------------------------------------
     @abstractmethod
-    def translate(self, dx: float, dy: float) -> "Spatial":
-        """Translate by (dx, dy)."""
+    def translate(self, dx: float, dy: float) -> Self:
+        """Translate locally by (dx, dy)."""
         ...
 
     @abstractmethod
-    def rotate(self, angle_deg: float, center: tuple[float, float] | None = None) -> "Spatial":
+    def rotate(self, angle_deg: float, center: PointLike | None = None) -> Self:
         """Rotate around a given center."""
         ...
 
     @abstractmethod
-    def resize(self, scale_x: float, scale_y: float, center: tuple[float, float] | None = None) -> "Spatial":
-        """Scale relative to a given center."""
+    def scale(
+        self, sx: float, sy: float | None = None, center: PointLike | None = None
+    ) -> Self:
+        """Scale around a given center."""
         ...
 
     @abstractmethod
-    def mirror(self, point: tuple[float, float] = (0, 0), angle: float = 0.0) -> "Spatial":
-        """Mirror across a line passing through `point` at `angle` degrees."""
+    def mirror(self, axis_p1: PointLike, axis_p2: PointLike) -> Self:
+        """Mirror across a line defined by two points (axis_p1 → axis_p2)."""
         ...
 
     # --------------------------------------------------------
-    # Common helpers
+    # Convenience helpers
     # --------------------------------------------------------
-    def scale(self, factor: float, center: tuple[float, float] | None = None) -> "Spatial":
-        """Uniform scaling."""
-        return self.resize(factor, factor, center)
+    def flip_lr(self) -> Self:
+        """Flip left–right (mirror around the vertical axis through origin)."""
+        return self.mirror((-1e6, 0), (1e6, 0))
 
-    def mirror_vertical(self, x: float = 0.0) -> "Spatial":
-        """Mirror across a vertical axis (angle = 90°)."""
-        return self.mirror(point=(x, 0), angle=90.0)
-
-    def mirror_horizontal(self, y: float = 0.0) -> "Spatial":
-        """Mirror across a horizontal axis (angle = 0°)."""
-        return self.mirror(point=(0, y), angle=0.0)
+    def flip_ud(self) -> Self:
+        """Flip up–down (mirror around the horizontal axis through origin)."""
+        return self.mirror((0, -1e6), (0, 1e6))
