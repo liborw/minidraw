@@ -4,9 +4,10 @@ from xml.etree.ElementTree import Element, SubElement, tostring
 from xml.dom import minidom
 from math import sin, cos, radians
 
+from ..shapes import Shape
 from ..primitives import Line, Circle, Rectangle, Polyline, Arc, Text, Group, Primitive
 from ..style import Style
-from .base import Backend
+from .base import Backend, Drawable, to_elements
 
 
 class SVGBackend(Backend):
@@ -20,8 +21,8 @@ class SVGBackend(Backend):
     # -----------------------------------------------------------
     # Public entry point
     # -----------------------------------------------------------
-    def render_to_string(self, drawable: Primitive | Iterable[Primitive]) -> str:
-        drawables = [drawable] if isinstance(drawable, (Primitive)) else list(drawable)
+    def render_to_string(self, drawable: Drawable) -> str:
+        drawables = to_elements(drawable)
 
         bounds = self._compute_bounds(drawables)
         if bounds:
@@ -184,6 +185,26 @@ class SVGBackend(Backend):
                 "opacity": str(style.opacity or self.default_style.opacity or 1.0),
             },
         )
+        text_elem.text = item.content
+
+    def _draw_text(self, item: Text, parent: Element, style: Style) -> None:
+        x, y = item.pos.abs()
+        attrs = {
+            "x": str(x),
+            "y": str(y),
+            "font-size": str(style.font_size or self.default_style.font_size or 10),
+            "font-family": style.font_family or self.default_style.font_family or "sans-serif",
+            "text-anchor": style.text_anchor or self.default_style.text_anchor or "start",
+            **({"dominant-baseline": str(style.text_baseline)} if style.text_baseline is not None else {}),
+            "fill": style.fill or self.default_style.fill or "black",
+            "stroke": style.stroke or "none",
+            "opacity": str(style.opacity or self.default_style.opacity or 1.0),
+        }
+
+        if getattr(item, "rotation", 0):
+            attrs["transform"] = f"rotate({item.rotation} {x} {y})"
+
+        text_elem = SubElement(parent, "text", attrs)
         text_elem.text = item.content
 
     def _draw_group(self, item: Group, parent: Element, inherited_style: Style) -> None:

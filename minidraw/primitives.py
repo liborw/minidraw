@@ -251,11 +251,13 @@ class Arc(Primitive):
 class Text(Primitive):
     pos: Point
     content: str = ""
+    rotation: Optional[float] = None
 
-    def __init__(self, pos: PointLike = (0, 0), content: str = "", **kwargs):
+    def __init__(self, pos: PointLike = (0, 0), content: str = "", rotation: Optional[float] = None, **kwargs):
         super().__init__(**kwargs)
         self.pos = to_point(pos)
         self.content = content
+        self.rotation = rotation
 
     def center(self) -> Point:
         return self.pos

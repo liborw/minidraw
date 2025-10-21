@@ -1,8 +1,21 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, TypeAlias
+
+from ..shapes.shape import Shape
 from ..primitives import Primitive
+
+Drawable: TypeAlias = "Primitive | Shape | Iterable[Primitive]"
+
+
+def to_elements(drawable: Drawable) -> Iterable[Primitive]:
+    if isinstance(drawable, Shape):
+        return drawable.elements()
+    elif isinstance(drawable, Primitive):
+        return [drawable]
+    else:
+        return drawable
 
 
 class Backend(ABC):
@@ -11,7 +24,7 @@ class Backend(ABC):
     @abstractmethod
     def render_to_string(
         self,
-        drawable: Primitive | Iterable[Primitive],
+        drawable: Drawable,
     ) -> str:
         """Render primitives or groups and return backend-specific output as a string."""
         raise NotImplementedError(
@@ -21,7 +34,7 @@ class Backend(ABC):
     def render_to_file(
         self,
         path: Path ,
-        drawable: Primitive | Iterable[Primitive],
+        drawable: Drawable,
     ) -> None:
         """Render primitives or groups to a file.
 

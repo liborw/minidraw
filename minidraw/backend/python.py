@@ -4,7 +4,7 @@ from pathlib import Path
 
 from ..primitives import Primitive, Group, Line, Circle, Rectangle, Polyline, Arc, Text
 from ..style import Style
-from .base import Backend
+from .base import Backend, Drawable, to_elements
 
 
 class PythonBackend(Backend):
@@ -18,8 +18,9 @@ class PythonBackend(Backend):
     # ------------------------------------------------------------------
     # Rendering entrypoints
     # ------------------------------------------------------------------
-    def render_to_string(self, drawable: Primitive | Iterable[Primitive]) -> str:
-        drawables = [drawable] if isinstance(drawable, Primitive) else list(drawable)
+    def render_to_string(self, drawable: Drawable) -> str:
+
+        drawables = to_elements(drawable)
         lines: List[str] = []
 
         # Header
@@ -39,9 +40,6 @@ class PythonBackend(Backend):
             lines += ["", "d.render_to_file('output.svg')"]
 
         return "\n".join(lines)
-
-    def render_to_file(self, path: Path, drawable: Primitive | Iterable[Primitive]) -> None:
-        path.write_text(self.render_to_string(drawable), encoding="utf-8")
 
     # ------------------------------------------------------------------
     # Primitive dispatch
@@ -107,7 +105,8 @@ class PythonBackend(Backend):
     def _render_text(self, p: Text, var_prefix: str) -> List[str]:
         x, y = p.pos.abs()
         text_value = repr(p.content)
-        return [f"{var_prefix}.add(Text(({x}, {y}), {text_value}{self._style_suffix(p)}))"]
+        rotation_part = f", rotation={p.rotation}" if getattr(p, "rotation", 0) else ""
+        return [f"{var_prefix}.add(Text(({x}, {y}), {text_value}{rotation_part}{self._style_suffix(p)}))"]
 
     # ------------------------------------------------------------------
     # Style formatting
