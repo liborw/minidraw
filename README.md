@@ -1,6 +1,6 @@
 
 <p align="center">
-![minidraw](./fig/logo.svg)
+    <img src="./fig/logo.svg" />
 </p>
 
 *A minimal, composable 2D drawing library for Python.*
