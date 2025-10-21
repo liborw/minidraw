@@ -1,7 +1,7 @@
 
+<p align="center">
 ![minidraw](./fig/logo.svg)
-
-## 🖋️ **minidraw**
+</p>
 
 *A minimal, composable 2D drawing library for Python.*
 
