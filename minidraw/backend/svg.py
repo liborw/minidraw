@@ -137,7 +137,10 @@ class SVGBackend(Backend):
         }
         if style.dash:
             attrs["stroke-dasharray"] = " ".join(map(str, style.dash))
-        SubElement(parent, "polyline", attrs)
+        if item.closed:
+            SubElement(parent, "polygon", attrs)
+        else:
+            SubElement(parent, "polyline", attrs)
 
     def _draw_arc(self, item: Arc, parent: Element, style: Style) -> None:
         cx, cy = item.center_point.abs()

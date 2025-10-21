@@ -1,6 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
-from typing import List, Optional, Self, Sequence
+from typing import List, Optional, Self, Sequence, Tuple
 import copy
 from abc import abstractmethod
 
@@ -123,10 +123,10 @@ class Circle(Primitive):
 @dataclass
 class Rectangle(Primitive):
     pos: Point
-    size: PointLike = (1, 1)
+    size: Tuple[float, float]
     radius: Optional[float] = None
 
-    def __init__(self, pos: PointLike = (0, 0), size: PointLike = None, **kwargs):
+    def __init__(self, pos: PointLike = (0, 0), size: Tuple[float, float] = (10.0, 10.0), radius: Optional[float] = None, **kwargs):
         super().__init__(**kwargs)
         self.pos = to_point(pos)
         self.size = size

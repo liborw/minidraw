@@ -18,11 +18,8 @@ class PythonBackend(Backend):
     # ------------------------------------------------------------------
     # Rendering entrypoints
     # ------------------------------------------------------------------
-    def render_to_string(
-        self,
-        drawable: Primitive | Iterable[Primitive],
-    ) -> str:
-        drawables = [drawable] if isinstance(drawable, (Primitive)) else list(drawable)
+    def render_to_string(self, drawable: Primitive | Iterable[Primitive]) -> str:
+        drawables = [drawable] if isinstance(drawable, Primitive) else list(drawable)
         lines: List[str] = []
 
         # Header
@@ -47,64 +44,70 @@ class PythonBackend(Backend):
         path.write_text(self.render_to_string(drawable), encoding="utf-8")
 
     # ------------------------------------------------------------------
-    # Primitive rendering
+    # Primitive dispatch
     # ------------------------------------------------------------------
     def _render_primitive(self, p: Primitive, var_prefix: str) -> List[str]:
-        lines: List[str] = []
-
-        # Group
+        """Dispatch rendering to the appropriate primitive renderer."""
         if isinstance(p, Group):
-            self.group_counter += 1
-            gname = f"g{self.group_counter}"
-            style_part = self._style_arg(p.style)
-            style_text = f"({style_part})" if style_part else "()"
-            lines.append(f"{gname} = Group{style_text}")
-            for e in p.elements:
-                lines.extend(self._render_primitive(e, var_prefix=gname))
-            lines.append(f"{var_prefix}.add({gname})")
-            return lines
-
-        # Line
+            return self._render_group(p, var_prefix)
         if isinstance(p, Line):
-            x1, y1 = p.start.abs()
-            x2, y2 = p.end.abs()
-            lines.append(f"{var_prefix}.add(Line(({x1}, {y1}), ({x2}, {y2}){self._style_suffix(p)}))")
-            return lines
-
-        # Circle
+            return self._render_line(p, var_prefix)
         if isinstance(p, Circle):
-            cx, cy = p.center_point.abs()
-            lines.append(f"{var_prefix}.add(Circle(({cx}, {cy}), {p.radius}{self._style_suffix(p)}))")
-            return lines
-
-        # Rectangle
+            return self._render_circle(p, var_prefix)
         if isinstance(p, Rectangle):
-            x, y = p.pos.abs()
-            lines.append(f"{var_prefix}.add(Rectangle(({x}, {y}), ({p.size[0]}, {p.size[1]}){self._style_suffix(p)}))")
-            return lines
-
-        # Polyline
+            return self._render_rectangle(p, var_prefix)
         if isinstance(p, Polyline):
-            pts = ", ".join(f"({x}, {y})" for x, y in (pt.abs() for pt in p.points))
-            lines.append(f"{var_prefix}.add(Polyline([{pts}]{self._style_suffix(p)}))")
-            return lines
-
-        # Arc
+            return self._render_polyline(p, var_prefix)
         if isinstance(p, Arc):
-            cx, cy = p.center_point.abs()
-            lines.append(
-                f"{var_prefix}.add(Arc(({cx}, {cy}), {p.radius}, {p.start_angle}, {p.end_angle}{self._style_suffix(p)}))"
-            )
-            return lines
-
-        # Text
+            return self._render_arc(p, var_prefix)
         if isinstance(p, Text):
-            x, y = p.pos.abs()
-            text_value = repr(p.content)
-            lines.append(f"{var_prefix}.add(Text(({x}, {y}), {text_value}{self._style_suffix(p)}))")
-            return lines
+            return self._render_text(p, var_prefix)
+        return []
 
+    # ------------------------------------------------------------------
+    # Individual primitive renderers
+    # ------------------------------------------------------------------
+    def _render_group(self, p: Group, var_prefix: str) -> List[str]:
+        self.group_counter += 1
+        gname = f"g{self.group_counter}"
+        lines: List[str] = []
+        style_part = self._style_arg(p.style)
+        style_text = f"({style_part})" if style_part else "()"
+        lines.append(f"{gname} = Group{style_text}")
+        for e in p.elements:
+            lines.extend(self._render_primitive(e, var_prefix=gname))
+        lines.append(f"{var_prefix}.add({gname})")
         return lines
+
+    def _render_line(self, p: Line, var_prefix: str) -> List[str]:
+        x1, y1 = p.start.abs()
+        x2, y2 = p.end.abs()
+        return [f"{var_prefix}.add(Line(({x1}, {y1}), ({x2}, {y2}){self._style_suffix(p)}))"]
+
+    def _render_circle(self, p: Circle, var_prefix: str) -> List[str]:
+        cx, cy = p.center_point.abs()
+        return [f"{var_prefix}.add(Circle(({cx}, {cy}), {p.radius}{self._style_suffix(p)}))"]
+
+    def _render_rectangle(self, p: Rectangle, var_prefix: str) -> List[str]:
+        x, y = p.pos.abs()
+        w, h = p.size
+        return [f"{var_prefix}.add(Rectangle(({x}, {y}), ({w}, {h}){self._style_suffix(p)}))"]
+
+    def _render_polyline(self, p: Polyline, var_prefix: str) -> List[str]:
+        pts = ", ".join(f"({x}, {y})" for x, y in (pt.abs() for pt in p.points))
+        closed_part = f", closed={p.closed}" if p.closed else ""
+        return [f"{var_prefix}.add(Polyline([{pts}]{closed_part}{self._style_suffix(p)}))"]
+
+    def _render_arc(self, p: Arc, var_prefix: str) -> List[str]:
+        cx, cy = p.center_point.abs()
+        return [
+            f"{var_prefix}.add(Arc(({cx}, {cy}), {p.radius}, {p.start_angle}, {p.end_angle}{self._style_suffix(p)}))"
+        ]
+
+    def _render_text(self, p: Text, var_prefix: str) -> List[str]:
+        x, y = p.pos.abs()
+        text_value = repr(p.content)
+        return [f"{var_prefix}.add(Text(({x}, {y}), {text_value}{self._style_suffix(p)}))"]
 
     # ------------------------------------------------------------------
     # Style formatting
