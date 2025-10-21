@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="154.0" height="94.0" viewBox="-10 -24.0 154.0 94.0">
+  <line x1="0" y1="0" x2="100" y2="0" stroke="#666" stroke-width="0.6" opacity="1.0"/>
+  <line x1="120" y1="0" x2="120" y2="60" stroke="#666" stroke-width="0.6" opacity="1.0"/>
+  <line x1="0" y1="0" x2="80" y2="50" stroke="#666" stroke-width="0.6" opacity="1.0"/>
+  <line x1="0.0" y1="-2.0" x2="0.0" y2="-12.0" stroke="#000" stroke-width="0.5" opacity="1.0"/>
+  <line x1="100.0" y1="-2.0" x2="100.0" y2="-12.0" stroke="#000" stroke-width="0.5" opacity="1.0"/>
+  <line x1="0.0" y1="-10.0" x2="100.0" y2="-10.0" stroke="#000" stroke-width="0.5" opacity="1.0"/>
+  <polyline points="3.464101615137755,-8.0 0.0,-10.0 3.464101615137755,-12.0" stroke="#000" stroke-width="0.5" fill="none" opacity="1.0"/>
+  <polyline points="96.53589838486225,-12.0 100.0,-10.0 96.53589838486225,-8.0" stroke="#000" stroke-width="0.5" fill="none" opacity="1.0"/>
+  <text x="50.0" y="-14.0" font-size="10" font-family="sans-serif" text-anchor="middle" fill="#000" stroke="none" opacity="1.0">100.0 mm</text>
+  <line x1="122.0" y1="0.0" x2="132.0" y2="0.0" stroke="#000" stroke-width="0.5" opacity="1.0"/>
+  <line x1="122.0" y1="60.0" x2="132.0" y2="60.0" stroke="#000" stroke-width="0.5" opacity="1.0"/>
+  <line x1="130.0" y1="0.0" x2="130.0" y2="60.0" stroke="#000" stroke-width="0.5" opacity="1.0"/>
+  <polyline points="128.0,3.464101615137755 130.0,0.0 132.0,3.464101615137755" stroke="#000" stroke-width="0.5" fill="none" opacity="1.0"/>
+  <polyline points="132.0,56.53589838486224 130.0,60.0 128.0,56.53589838486224" stroke="#000" stroke-width="0.5" fill="none" opacity="1.0"/>
+  <text x="134.0" y="30.0" font-size="10" font-family="sans-serif" text-anchor="middle" fill="#000" stroke="none" opacity="1.0" transform="rotate(90.0 134.0 30.0)">60.0 mm</text>
+  <line x1="1.0599978800063599" y1="-1.6959966080101758" x2="6.35998728003816" y2="-10.175979648061055" stroke="#000" stroke-width="0.5" opacity="1.0"/>
+  <line x1="81.05999788000636" y1="48.30400339198982" x2="86.35998728003817" y2="39.82402035193894" stroke="#000" stroke-width="0.5" opacity="1.0"/>
+  <line x1="5.2999894000318" y1="-8.479983040050879" x2="85.2999894000318" y2="41.52001695994912" stroke="#000" stroke-width="0.5" opacity="1.0"/>
+  <polyline points="7.177543814563542,-4.948016247954389 5.2999894000318,-8.479983040050879 9.297539574576263,-8.340009463974742" stroke="#000" stroke-width="0.5" fill="none" opacity="1.0"/>
+  <polyline points="83.42243498550006,37.98805016785263 85.2999894000318,41.52001695994912 81.30243922548735,41.38004338387298" stroke="#000" stroke-width="0.5" fill="none" opacity="1.0"/>
+  <text x="47.419985160044526" y="13.128023743928766" font-size="10" font-family="sans-serif" text-anchor="middle" fill="#000" stroke="none" opacity="1.0" transform="rotate(32.005383208083494 47.419985160044526 13.128023743928766)">94.3 mm</text>
+  <line x1="0.0" y1="-2.0" x2="0.0" y2="-12.0" stroke="#000" stroke-width="0.5" opacity="1.0"/>
+  <line x1="40.0" y1="-2.0" x2="40.0" y2="-12.0" stroke="#000" stroke-width="0.5" opacity="1.0"/>
+  <line x1="0.0" y1="-10.0" x2="40.0" y2="-10.0" stroke="#000" stroke-width="0.5" opacity="1.0"/>
+  <polyline points="3.464101615137755,-8.0 0.0,-10.0 3.464101615137755,-12.0" stroke="#000" stroke-width="0.5" fill="none" opacity="1.0"/>
+  <polyline points="36.53589838486224,-12.0 40.0,-10.0 36.53589838486224,-8.0" stroke="#000" stroke-width="0.5" fill="none" opacity="1.0"/>
+  <text x="20.0" y="-14.0" font-size="10" font-family="sans-serif" text-anchor="middle" fill="#000" stroke="none" opacity="1.0">Hole spacing</text>
+</svg>
