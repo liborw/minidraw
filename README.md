@@ -1,139 +1,138 @@
-# minidraw
 
-**minidraw** is a minimal, pure-Python 2D drawing library designed around composable geometric primitives and spatial transformations. It enables you to build structured vector graphics, transform them fluently, and export them into multiple formats such as **SVG** or **Python code**.
+![minidraw](./fig/logo.svg)
 
----
+## 🖋️ **minidraw**
 
-## ✨ Features
+*A minimal, composable 2D drawing library for Python.*
 
-* **Composable primitives**: Line, Circle, Rectangle, Polyline, Arc, and Text.
-* **Hierarchical grouping** with transformation inheritance.
-* **Fluent spatial transformations** — translate, rotate, scale, and mirror any element.
-* **Declarative styling** using the `Style` dataclass.
-* **Multiple rendering backends**:
-  * `SVGBackend` → export as `.svg`
-  * `PythonBackend` → generate equivalent Python source code.
-* **Simple, readable API** that keeps math and rendering separate.
+**minidraw** lets you build and transform vector drawings in code — as easily as working with geometric objects.
+No heavy dependencies, no GUI required — just pure Python objects that you can **render to SVG** or **export as code**.
 
 ---
 
-## 🧱 Core Modules
-
-| Module          | Description                                                |
-| --------------- | ---------------------------------------------------------- |
-| `point.py`      | Defines `Point`, a transformable 2D coordinate class.      |
-| `spatial.py`    | Abstract base class defining the transformation interface. |
-| `primitives.py` | Geometric shapes and `Group` container.                    |
-| `style.py`      | Explicit visual style dataclass shared by primitives.      |
-| `transform.py`  | Math helpers for rotation, scaling, and mirroring.         |
-| `drawing.py`    | Top-level `Drawing` object with backend rendering.         |
-
----
-
-## 🧩 Basic Example
+### 🚀 Quick Start
 
 ```python
 from minidraw import Drawing, Line, Circle, Style
 
+# Create a new drawing
 d = Drawing()
 
-# Add some primitives
-l = Line((10, 10), (80, 80), style=Style(stroke="black"))
-c = Circle((50, 50), 20, style=Style(stroke="red", fill="none"))
+# Add shapes
+line = Line((10, 10), (100, 60), style=Style(stroke="black"))
+circle = Circle((80, 40), 20, style=Style(stroke="red", fill="none"))
 
-d.add(l, c)
+d.add(line, circle)
 
-# Apply transformations
-c.copy().translate(40, 0).scale(1.2)
+# Transform and duplicate
+circle.copy().translate(40, 0).scale(1.2)
 
 # Export
-print(d.render_to_string("python"))   # → Python code output
-d.render_to_file("example.svg")       # → SVG file
+d.render_to_file("example.svg")     # → SVG image
+print(d.render_to_string("python")) # → Reproducible Python code
 ```
 
----
-
-## 🔄 Transformations
-
-All primitives implement:
-
-* `translate(dx, dy)` – move by offset.
-* `rotate(angle, center=None)` – rotate around a point.
-* `resize(sx, sy, center=None)` – scale along axes.
-* `scale(factor, center=None)` – uniform scale.
-* `mirror(point, angle)` – reflect across an arbitrary line.
-* `mirror_vertical(x)` / `mirror_horizontal(y)` – convenient reflections.
-
-Transformations mutate the object in place, but `copy()` creates deep copies for safe chaining.
+👉 **Output:** clean SVG or equivalent Python code that rebuilds the scene.
 
 ---
 
-## 🎨 Styling
+### 🧠 Core Concepts
 
-The `Style` dataclass allows fine-grained control over stroke, fill, text, and opacity:
+| Concept        | Description                                                             |
+| -------------- | ----------------------------------------------------------------------- |
+| **Primitives** | Basic shapes (`Line`, `Circle`, `Rectangle`, `Polyline`, `Arc`, `Text`) |
+| **Group**      | Container that applies transforms to child primitives                   |
+| **Drawing**    | Top-level group with export methods                                     |
+| **Point**      | Transformable coordinate supporting local references                    |
+| **Style**      | Declarative stroke/fill/text properties                                 |
+| **Backends**   | Flexible exporters (`SVGBackend`, `PythonBackend`, or your own)         |
+
+Everything derives from `Spatial`, giving all objects a consistent transformation API.
+
+---
+
+### 🔄 Transform Anything
+
+All primitives share the same fluent interface:
+
+```python
+shape.translate(20, 0).rotate(45).scale(1.5).mirror((0, 0), (0, 1))
+```
+
+Transformations mutate in place — or use `.copy()` to duplicate first.
+
+Available methods:
+
+* `translate(dx, dy)`
+* `rotate(angle_deg, center=None)`
+* `scale(sx, sy=None, center=None)`
+* `mirror(axis_p1, axis_p2)`
+* `flip_lr()` and `flip_ud()` for quick reflections
+
+---
+
+### 🎨 Styling Made Simple
 
 ```python
 Style(
-    stroke="black",
-    stroke_width=2.0,
+    stroke="#333",
+    stroke_width=2,
     fill="none",
     opacity=0.8,
-    font_size=14,
-    text_anchor="middle",
+    font_size=12,
 )
 ```
 
-`Style` objects can be merged using `.merged(parent)` to inherit defaults.
+You can combine or override styles with:
+
+```python
+child_style = Style(stroke="red").merged(parent_style)
+```
 
 ---
 
-## 🧠 Example: Spatial Transform Demo
-
-`demo_spatial_transforms.py` showcases all core transformations:
+### 🧹 Example: Building a Technical Diagram
 
 ```python
-from minidraw import Drawing, Rectangle, Circle, Line, Polyline, Arc, Text, Style, Group
+from minidraw import Drawing, Line, Circle, Group, Style
 
+g = Group(style=Style(stroke="#666"))
+g.add(
+    Line((0, 0), (50, 0)),
+    Circle((25, 0), 8, style=Style(stroke="red", fill="none")),
+)
+
+# Duplicate with rotation
+gear = g.copy().rotate(45)
 d = Drawing()
-g = Group()
+d.add(g, gear)
 
-base = Rectangle((10, 10), (30, 20), style=Style(stroke="#999"))
-rotated = base.copy().rotate(30, (25, 20)).set_style(Style(stroke="red"))
-
-g.add(base, rotated)
-d.add(g)
-
-d.render_to_file("spatial_transforms_demo.svg")
+d.render_to_file("gear.svg")
 ```
 
-Produces an SVG illustrating translation, rotation, scaling, and mirroring.
+👉 The result: a clean, rotated gear-like structure drawn entirely from Python.
 
 ---
 
-## 🧰 Backends
+### 🧰 Extend with Backends
 
-* **`SVGBackend`** – converts primitives into valid SVG markup.
-* **`PythonBackend`** – generates equivalent Python code that recreates the drawing.
-
-Custom backends can be implemented by subclassing `Backend` and overriding:
+Write your own renderer by subclassing `Backend`:
 
 ```python
-def render_to_string(self, elements: list[Primitive]) -> str:
-    ...
-
-def render_to_file(self, path: Path, elements: list[Primitive]) -> None:
-    ...
+class JSONBackend(Backend):
+    def render_to_string(self, elements):
+        return json.dumps([e.__dict__ for e in elements])
 ```
 
 ---
 
-## 📦 Installation
+### 📦 Installation
 
 ```bash
 pip install minidraw
 ```
 
-*(for now, clone and install locally until released on PyPI)*
+or from source:
 
 ```bash
 git clone https://github.com/yourname/minidraw.git
@@ -143,6 +142,15 @@ pip install -e .
 
 ---
 
-## 🧾 License
+### 💡 Why You’ll Love It
 
-MIT License © 2025 — Designed for simplicity and educational clarity.
+* Pure Python — no C extensions, no graphics dependencies.
+* Intuitive, fluent API that feels like manipulating geometry, not pixels.
+* Human-readable exports — your drawings are code, not opaque files.
+* Perfect for **procedural art**, **geometry experiments**, or **generating SVG assets**.
+
+---
+
+### 🪪 License
+
+MIT License © 2025 — created for clarity, learning, and playful geometry.
